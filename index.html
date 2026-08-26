@@ -29,14 +29,14 @@
     --radius: 14px;
   }
   *{box-sizing:border-box;}
-  html,body{margin:0;padding:0;}
+  html,body{margin:0;padding:0; height:100%; overflow:hidden;}
   body{
     background: var(--bg);
     color: var(--text);
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
     -webkit-font-smoothing: antialiased;
-    padding-bottom: calc(40px + env(safe-area-inset-bottom));
     touch-action: manipulation;
+    display:flex; flex-direction:column;
   }
   .display{
     font-family: 'Arial Narrow', 'Segoe UI Semibold', system-ui, sans-serif;
@@ -48,10 +48,15 @@
 
   /* ---- header ---- */
   header{
-    position: sticky; top:0; z-index: 20;
-    background: linear-gradient(180deg, var(--bg) 80%, transparent);
+    flex-shrink:0;
+    background: var(--bg);
     padding: calc(18px + env(safe-area-inset-top)) 16px 8px;
   }
+  .workout-timer{
+    font-family: ui-monospace, 'SF Mono', 'Cascadia Code', Consolas, monospace;
+    font-size: 15px; font-weight:600; color: var(--text-dim); min-width:1px;
+  }
+  .workout-timer.running{ color: var(--accent); }
   .title-row{ display:flex; align-items:baseline; justify-content:space-between; gap:8px; }
   .app-title{ font-size: 28px; line-height:1; color: var(--text); }
   .app-title span{ color: var(--accent); }
@@ -75,6 +80,7 @@
   .nav-toggle-chevron.collapsed{ transform: rotate(-90deg); }
 
   .nav-pickers{
+    flex-shrink:0;
     overflow:hidden; max-height:260px; opacity:1;
     transition: max-height .28s ease, opacity .2s ease;
   }
@@ -148,10 +154,10 @@
     color: var(--accent); border:1px solid var(--accent-dim); border-radius:5px; padding:2px 6px;
   }
 
-  main{ padding: 0 16px; }
+  main{ padding: 0 16px; flex:1; min-height:0; display:flex; flex-direction:column; overflow:hidden; }
 
   /* exercise carousel */
-  .exercise-dots{ display:flex; justify-content:center; align-items:center; gap:6px; margin: 6px 0 12px; }
+  .exercise-dots{ display:flex; justify-content:center; align-items:center; gap:6px; margin: 6px 0 12px; flex-shrink:0; }
   .exercise-dot{
     width:6px; height:6px; border-radius:3px; background:var(--line); border:none; padding:0;
     flex-shrink:0; cursor:pointer; transition: width .2s ease, background .2s ease;
@@ -159,8 +165,9 @@
   .exercise-dot.active{ width:20px; background: var(--accent); }
 
   .exercise-carousel{
-    display:flex; overflow-x:auto; scroll-snap-type:x mandatory;
+    display:flex; overflow-x:auto; overflow-y:auto; scroll-snap-type:x mandatory;
     -webkit-overflow-scrolling:touch; scrollbar-width:none; margin: 0 -16px;
+    flex:1; min-height:0; padding-bottom: calc(24px + env(safe-area-inset-bottom));
   }
   .exercise-carousel::-webkit-scrollbar{ display:none; }
   .exercise-slide{
@@ -210,38 +217,30 @@
   .variant-pill.active{ background:rgba(232,176,35,0.14); border-color:var(--accent); color:var(--accent); }
 
   .sets-wrap{ margin-top: 4px; }
-  .set-row{ display:grid; grid-template-columns: 42px 1fr 1fr 40px; gap:8px; align-items:center; margin-bottom:7px; }
+  .set-row{ display:grid; grid-template-columns: 42px 1fr 1fr; gap:8px; align-items:center; margin-bottom:7px; }
   .set-label{ font-family:ui-monospace,'SF Mono','Cascadia Code',Consolas,monospace; font-size:12px; color:var(--text-dim); }
   .set-input{
     background: var(--bg); border: 1px solid var(--line); border-radius:8px; color:var(--text);
     font-family:ui-monospace,'SF Mono','Cascadia Code',Consolas,monospace; font-size:16px; padding:8px 6px; width:100%; text-align:center;
+    transition: border-color .15s ease, background .15s ease;
   }
   .set-input::placeholder{ color: var(--text-faint); }
   .set-input:focus{ outline:none; border-color: var(--accent); }
-  .set-check{
-    width:40px; height:40px; border-radius:8px; border:1px solid var(--line); background:var(--surface-2);
-    color:var(--text-faint); cursor:pointer; font-size:15px; display:flex; align-items:center; justify-content:center;
-  }
-  .set-check.done{ background: var(--ok); border-color: var(--ok); color:#0d1f0e; }
+  .set-row.done .set-input{ border-color: var(--ok); background: rgba(111,191,115,0.08); }
   .section-label{ font-size:10.5px; text-transform:uppercase; letter-spacing:0.08em; color:var(--text-faint); margin: 10px 0 4px; }
   .section-label:first-child{ margin-top:0; }
-  .col-labels{ display:grid; grid-template-columns: 42px 1fr 1fr 40px; gap:8px; margin-bottom:4px; }
-  .col-labels.with-rir{ grid-template-columns: 42px 1fr 1fr 44px 40px; }
+  .col-labels{ display:grid; grid-template-columns: 42px 1fr 1fr; gap:8px; margin-bottom:4px; }
+  .col-labels.with-rir{ grid-template-columns: 42px 1fr 1fr 44px; }
   .col-labels span{ font-size:10px; text-transform:uppercase; letter-spacing:0.06em; color:var(--text-faint); text-align:center; }
   .col-labels span:first-child{ text-align:left; }
-  .set-row.with-rir{ grid-template-columns: 42px 1fr 1fr 44px 40px; }
+  .set-row.with-rir{ grid-template-columns: 42px 1fr 1fr 44px; }
   .set-rir{ font-family:ui-monospace,'SF Mono','Cascadia Code',Consolas,monospace; font-size:13px; color:var(--text-dim); text-align:center; }
-
-  .day-actions{ display:flex; gap:10px; margin: 6px 0 10px; }
-  .day-actions-wrap{ margin-bottom: 20px; }
-  .complete-hint{
-    font-size:12px; color: var(--text-faint); text-align:center; min-height:16px;
-  }
 
   .backup-banner{
     margin: 0 16px 10px; padding: 10px 12px; background: var(--surface-2);
     border: 1px solid var(--accent-dim); border-radius: 10px;
-    display:flex; align-items:center; gap:10px; font-size:12.5px; color: var(--text-dim);
+    align-items:center; gap:10px; font-size:12.5px; color: var(--text-dim);
+    flex-shrink:0;
   }
   .backup-banner span{ flex:1; }
   .backup-banner button{
@@ -324,8 +323,8 @@
 <header>
   <div class="title-row">
     <div class="app-title display">TRAINING <span>LOG</span></div>
-    <div style="display:flex; gap:8px; flex-shrink:0;">
-      <button class="info-btn" onclick="openBackup()" title="Backup & restore">⇅</button>
+    <div style="display:flex; gap:10px; align-items:center; flex-shrink:0;">
+      <span class="workout-timer mono" id="workoutTimer"></span>
       <button class="info-btn" onclick="openWarmup()">i</button>
     </div>
   </div>
@@ -379,13 +378,6 @@
 <main>
   <div class="exercise-dots" id="exerciseDots"></div>
   <div class="exercise-carousel" id="exerciseCarousel"><div class="loading">Loading program…</div></div>
-  <div class="day-actions-wrap">
-    <div class="day-actions" id="dayActions" style="display:none;">
-      <button class="btn btn-ghost" onclick="openClearDayModal()">Clear day</button>
-      <button class="btn btn-primary" id="completeBtn" onclick="toggleDayComplete()">Mark day complete</button>
-    </div>
-    <div class="complete-hint" id="completeHint"></div>
-  </div>
 </main>
 
 <div class="modal-bg" id="warmupModal">
@@ -406,6 +398,7 @@
     <div class="warmup-tier"><b>3 sets:</b> ~45% × 6–10, ~65% × 4–6, ~85% × 3–4</div>
     <div class="warmup-tier"><b>4 sets:</b> ~45% × 6–10, ~60% × 4–6, ~75% × 3–5, ~85% × 2–4</div>
     <p style="margin-top:10px;">This program tracks RIR (Reps in Reserve) instead of RPE — lower numbers mean closer to failure, 0 means you couldn't get another rep. Week 1 is a lighter intro week; intensity ramps up toward true failure across the Foundation Block and Ramping Block. Full detail is in the program guidebook.</p>
+    <button class="btn btn-ghost" style="width:100%; margin-top:14px;" onclick="closeWarmup(); openBackup();">Backup &amp; restore…</button>
     <button class="modal-close" onclick="closeWarmup()">Got it</button>
   </div>
 </div>
@@ -436,24 +429,9 @@
 <div class="modal-bg" id="newDayModal">
   <div class="modal">
     <h2>New Day</h2>
-    <p>Looks like you're opening this on a different day than last time. If you logged progress elsewhere (another browser or device) since then, you can import that backup now to stay in sync.</p>
-    <input type="file" id="newDayFileInput" accept="application/json,.json" style="display:none;">
-    <button class="btn btn-primary" style="width:100%; margin-top:8px;" onclick="document.getElementById('newDayFileInput').click()">Choose backup file…</button>
-    <div class="section-label" style="margin-top:16px;">Or paste backup text</div>
-    <textarea id="newDayImportArea" placeholder="Paste backup JSON here" style="width:100%; min-height:90px; margin-top:8px; background:var(--bg); border:1px solid var(--line); border-radius:8px; color:var(--text); font-family:ui-monospace,monospace; font-size:16px; padding:10px;"></textarea>
-    <button class="btn btn-primary" style="width:100%; margin-top:10px;" onclick="importFromNewDayModal()">Import this backup</button>
-    <button class="modal-close" onclick="skipNewDayImport()">Skip for now</button>
-  </div>
-</div>
-
-<div class="modal-bg" id="clearDayModal">
-  <div class="modal">
-    <h2>Clear This Day?</h2>
-    <p>This deletes every set, warm-up entry, and note you've logged for this day — and un-marks it as complete if it was. This can't be undone unless you have a backup.</p>
-    <div style="display:flex; gap:10px; margin-top:16px;">
-      <button class="btn btn-ghost" style="flex:1;" onclick="closeClearDayModal()">Cancel</button>
-      <button class="btn btn-primary" style="flex:1; background:var(--danger); color:#fff;" onclick="confirmClearDay()">Clear day</button>
-    </div>
+    <p>Looks like this is your first time opening the app today. Ready to start timing today's workout?</p>
+    <button class="btn btn-primary" style="width:100%; margin-top:8px;" onclick="startWorkoutTimerFromModal()">Start workout timer</button>
+    <button class="modal-close" onclick="dismissNewDayPrompt()">Not now</button>
   </div>
 </div>
 
@@ -583,6 +561,32 @@ function parseSetCount(str){
 }
 
 function totalDays(){ return PROGRAM.weeks.length * PROGRAM.weeks[0].days.length; }
+
+function formatElapsed(ms){
+  const totalSec = Math.max(0, Math.floor(ms / 1000));
+  const h = Math.floor(totalSec / 3600);
+  const m = Math.floor((totalSec % 3600) / 60);
+  const s = totalSec % 60;
+  const mm = String(m).padStart(2, '0');
+  const ss = String(s).padStart(2, '0');
+  return h > 0 ? `${h}:${mm}:${ss}` : `${mm}:${ss}`;
+}
+
+// A set counts as done purely from having both a weight and a rep count typed in —
+// there's no separate checkbox to tap.
+function isSetDone(s){
+  return !!(s && s.weight && String(s.weight).trim() !== '' && s.reps && String(s.reps).trim() !== '');
+}
+function isExerciseFullyDone(ex, entry){
+  if(!entry || !entry.sets) return false;
+  const nWorking = parseInt(ex.workingSets) || 1;
+  if(entry.sets.length < nWorking) return false;
+  return entry.sets.every(isSetDone);
+}
+function isDayFullyDone(day){
+  if(!day.exercises.length) return false; // rest days aren't auto-completed
+  return day.exercises.every((ex, exIdx) => isExerciseFullyDone(ex, dayEntries[exIdx]));
+}
 
 async function computeCompletion(){
   const total = totalDays();
@@ -919,7 +923,7 @@ async function loadPrevWeekEntries(){
 
 function blankSets(n){
   const arr = [];
-  for(let i=0;i<n;i++) arr.push({weight:'', reps:'', done:false});
+  for(let i=0;i<n;i++) arr.push({weight:'', reps:''});
   return arr;
 }
 
@@ -988,6 +992,7 @@ function buildExerciseCard(day, exIdx, slide){
         ${selected.videoUrl ? `<a href="${selected.videoUrl}" target="_blank" rel="noopener" class="meta-chip video-chip" onclick="event.stopPropagation()">▶ Watch demo</a>` : ''}
         <div class="meta-chip">Sets <b>${ex.workingSets}</b></div>
         <div class="meta-chip">Rest <b>${ex.rest}</b></div>
+        ${entry.lapMs ? `<div class="meta-chip">⏱ <b>${formatElapsed(entry.lapMs)}</b></div>` : ''}
       </div>
     </div>
     <div class="ex-body ${isOpen?'open':''}" id="body-${exIdx}">
@@ -1001,11 +1006,11 @@ function buildExerciseCard(day, exIdx, slide){
     <div style="padding:0 14px 14px;">
       ${nWarmup > 0 ? `
       <div class="section-label">Warm-up (${ex.warmupSets} set${nWarmup>1?'s':''})</div>
-      <div class="col-labels"><span>Set</span><span>Weight</span><span>Reps</span><span></span></div>
+      <div class="col-labels"><span>Set</span><span>Weight</span><span>Reps</span></div>
       <div class="sets-wrap" id="warmup-${exIdx}"></div>
       ` : ''}
       <div class="section-label">Working sets</div>
-      <div class="col-labels with-rir"><span>Set</span><span>Weight</span><span>Reps</span><span>RIR</span><span></span></div>
+      <div class="col-labels with-rir"><span>Set</span><span>Weight</span><span>Reps</span><span>RIR</span></div>
       <div class="sets-wrap" id="sets-${exIdx}"></div>
       <div class="note-section">
         <button class="note-toggle ${entry.userNote ? 'has-note' : ''}" id="notebtn-${exIdx}">${entry.userNote ? 'Edit your note <span class="note-dot"></span>' : '+ Add a note'}</button>
@@ -1052,6 +1057,8 @@ function buildExerciseCard(day, exIdx, slide){
           subPrefsCache[prefKey] = prefVal;
           safeSet(prefKey, JSON.stringify(prefVal));
         }
+        // Collapse the row right away — no need to also tap the exercise title.
+        expandedEx[exIdx] = false;
         renderDay();
       });
     });
@@ -1094,7 +1101,7 @@ function buildExerciseCard(day, exIdx, slide){
   function buildRows(container, arr, labelPrefix, repsPlaceholder, rirGetter, prevArr){
     arr.forEach((s, si) => {
       const row = document.createElement('div');
-      row.className = 'set-row' + (rirGetter ? ' with-rir' : '');
+      row.className = 'set-row' + (rirGetter ? ' with-rir' : '') + (isSetDone(s) ? ' done' : '');
       const rirValue = rirGetter ? rirGetter(si) : null;
       const prevSet = prevArr && prevArr[si];
       const weightPlaceholder = (prevSet && prevSet.weight) ? prevSet.weight : 'kg';
@@ -1104,18 +1111,12 @@ function buildExerciseCard(day, exIdx, slide){
         <input class="set-input" inputmode="decimal" placeholder="${weightPlaceholder}" value="${s.weight}">
         <input class="set-input" inputmode="numeric" placeholder="${rowRepsPlaceholder}" value="${s.reps}">
         ${rirGetter ? `<div class="set-rir">${rirValue !== null && rirValue !== undefined ? rirValue : '—'}</div>` : ''}
-        <button class="set-check ${s.done?'done':''}">✓</button>
       `;
       const wInput = row.querySelector('.set-input:nth-of-type(1)');
       const rInput = row.querySelector('.set-input:nth-of-type(2)');
-      const doneBtn = row.querySelector('.set-check');
-      wInput.addEventListener('input', (e) => { s.weight = e.target.value; saveEntry(exIdx); });
-      rInput.addEventListener('input', (e) => { s.reps = e.target.value; saveEntry(exIdx); });
-      doneBtn.addEventListener('click', () => {
-        s.done = !s.done;
-        doneBtn.classList.toggle('done', s.done);
-        saveEntry(exIdx);
-      });
+      const updateDone = () => row.classList.toggle('done', isSetDone(s));
+      wInput.addEventListener('input', (e) => { s.weight = e.target.value; updateDone(); saveEntry(exIdx); });
+      rInput.addEventListener('input', (e) => { s.reps = e.target.value; updateDone(); saveEntry(exIdx); });
       container.appendChild(row);
     });
   }
@@ -1139,6 +1140,18 @@ function ensureExerciseRendered(day, exIdx){
   renderedExIdx.add(exIdx);
 }
 
+// Rebuilds a card in place even if it was already rendered — used when something
+// about that exercise changed (e.g. a lap time was just recorded for it) and the
+// on-screen card needs to reflect it without waiting for a full renderDay().
+function rebuildExerciseCard(day, exIdx){
+  if(exIdx < 0 || exIdx >= day.exercises.length) return;
+  const carousel = document.getElementById('exerciseCarousel');
+  const slide = carousel.querySelector(`.exercise-slide[data-exidx="${exIdx}"]`);
+  if(!slide) return;
+  buildExerciseCard(day, exIdx, slide);
+  renderedExIdx.add(exIdx);
+}
+
 function renderDay(){
   const week = PROGRAM.weeks[state.week-1];
   const day = week.days[state.dayIdx];
@@ -1150,12 +1163,11 @@ function renderDay(){
   const dotsEl = document.getElementById('exerciseDots');
   carousel.innerHTML = '';
   dotsEl.innerHTML = '';
-  document.getElementById('dayActions').style.display = 'flex';
   renderedExIdx = new Set();
 
   if(!day.exercises.length){
     carousel.innerHTML = '<div class="empty-day">Rest day. Recover well.</div>';
-    document.getElementById('dayActions').style.display = 'none';
+    refreshTimerDisplay();
     return;
   }
 
@@ -1195,7 +1207,8 @@ function renderDay(){
     carousel.scrollLeft = currentExIdx * carousel.clientWidth;
   });
 
-  refreshCompleteBtn();
+  refreshTimerDisplay();
+  syncDayCompletion();
 }
 
 function onCarouselScroll(){
@@ -1206,6 +1219,7 @@ function onCarouselScroll(){
     if(carousel && carousel.clientWidth){
       const idx = Math.round(carousel.scrollLeft / carousel.clientWidth);
       if(idx !== currentExIdx){
+        const prevIdx = currentExIdx;
         currentExIdx = idx;
         document.querySelectorAll('.exercise-dot').forEach((d, i) => {
           d.classList.toggle('active', i === currentExIdx);
@@ -1215,11 +1229,30 @@ function onCarouselScroll(){
         ensureExerciseRendered(day, idx);
         ensureExerciseRendered(day, idx - 1);
         ensureExerciseRendered(day, idx + 1);
-        refreshCompleteBtn();
+        maybeRecordLap(day, prevIdx);
       }
     }
     scrollTicking = false;
   });
+}
+
+// Records a lap time for the exercise being left, but only if: a timer is
+// actively running for today's session, that exercise's working sets are all
+// filled in (weight + reps), and it hasn't already been lapped.
+function maybeRecordLap(day, exIdx){
+  if(exIdx < 0 || exIdx >= day.exercises.length) return;
+  if(!activeTimer || activeTimer.week !== state.week || activeTimer.dayIdx !== state.dayIdx) return;
+  const ex = day.exercises[exIdx];
+  const entry = dayEntries[exIdx];
+  if(!entry || entry.lapMs) return;
+  if(!isExerciseFullyDone(ex, entry)) return;
+  const lastEpoch = activeTimer.lastLapEpochMs || activeTimer.startEpochMs;
+  const now = Date.now();
+  entry.lapMs = now - lastEpoch;
+  saveEntry(exIdx);
+  activeTimer.lastLapEpochMs = now;
+  safeSet(ACTIVE_TIMER_KEY, JSON.stringify(activeTimer));
+  rebuildExerciseCard(day, exIdx);
 }
 
 let saveTimers = {};
@@ -1227,72 +1260,80 @@ function saveEntry(exIdx){
   clearTimeout(saveTimers[exIdx]);
   saveTimers[exIdx] = setTimeout(async () => {
     await safeSet(keyEntry(state.week, state.dayIdx, exIdx), JSON.stringify(dayEntries[exIdx]));
+    syncDayCompletion();
   }, 250);
 }
 
-async function refreshCompleteBtn(){
-  const key = keyDayDone(state.week, state.dayIdx);
-  const existing = await safeList(key);
-  const btn = document.getElementById('completeBtn');
-  const hint = document.getElementById('completeHint');
+// ---- Automatic day completion ----
+// A day is "complete" the moment every working set of every exercise has both
+// a weight and a rep count filled in — no button to press. This both drives
+// the progress bar / day badge, and is what silently stops the workout timer.
+async function syncDayCompletion(){
   const week = PROGRAM.weeks[state.week-1];
   const day = week.days[state.dayIdx];
-  const isComplete = existing.includes(key);
-
-  if(isComplete){
-    btn.textContent = 'Day complete ✓';
-    btn.style.background = 'var(--ok)';
-  } else {
-    btn.textContent = 'Mark day complete';
-    btn.style.background = 'var(--accent)';
-  }
-
-  const onLastExercise = day.exercises.length === 0 || currentExIdx === day.exercises.length - 1;
-  // always allow un-marking a completed day, even if not on the last exercise
-  btn.disabled = !isComplete && !onLastExercise;
-  if(hint){
-    hint.textContent = (!isComplete && !onLastExercise) ? 'Swipe to the last exercise to mark this day complete' : '';
-  }
-}
-
-async function toggleDayComplete(){
   const key = keyDayDone(state.week, state.dayIdx);
   const existing = await safeList(key);
   const wasComplete = existing.includes(key);
-  if(wasComplete){ await safeDelete(key); }
-  else { await safeSet(key, 'true'); }
-  await updateSplitBadge();
-  await computeCompletion();
-  await refreshCompleteBtn();
-
-  // auto-backup: only when marking a day AS complete, not when un-marking
-  if(!wasComplete){
-    await downloadBackup();
+  const nowComplete = isDayFullyDone(day);
+  if(nowComplete && !wasComplete){
+    await safeSet(key, 'true');
+    await updateSplitBadge();
+    await computeCompletion();
+    if(activeTimer && activeTimer.week === state.week && activeTimer.dayIdx === state.dayIdx){
+      await stopWorkoutTimer();
+    }
+  } else if(!nowComplete && wasComplete){
+    await safeDelete(key);
+    await updateSplitBadge();
+    await computeCompletion();
   }
 }
 
-function openClearDayModal(){
-  document.getElementById('clearDayModal').classList.add('open');
-}
-function closeClearDayModal(){
-  document.getElementById('clearDayModal').classList.remove('open');
+// ---- Workout timer ----
+const ACTIVE_TIMER_KEY = '_meta:active-timer';
+let activeTimer = null; // { week, dayIdx, startEpochMs, lastLapEpochMs }
+let timerTickInterval = null;
+
+async function loadActiveTimer(){
+  const raw = await safeGet(ACTIVE_TIMER_KEY);
+  if(raw){ try{ activeTimer = JSON.parse(raw); }catch(e){ activeTimer = null; } }
 }
 
-async function confirmClearDay(){
-  closeClearDayModal();
-  const prefix = `log:${state.week}:${state.dayIdx}:`;
-  const keys = await safeList(prefix);
-  for(const key of keys){ await safeDelete(key); }
-  const doneKey = keyDayDone(state.week, state.dayIdx);
-  const doneExisting = await safeList(doneKey);
-  if(doneExisting.includes(doneKey)) await safeDelete(doneKey);
-  expandedEx = {};
-  tipExpanded = {};
-  await loadDayEntries();
-  await loadPrevWeekEntries();
-  renderDay();
-  await updateSplitBadge();
-  await computeCompletion();
+function keyWorkoutDuration(week, dayIdx){ return `workout-duration:${week}:${dayIdx}`; }
+
+async function refreshTimerDisplay(){
+  const el = document.getElementById('workoutTimer');
+  if(!el) return;
+  if(activeTimer && activeTimer.week === state.week && activeTimer.dayIdx === state.dayIdx){
+    el.textContent = formatElapsed(Date.now() - activeTimer.startEpochMs);
+    el.classList.add('running');
+  } else {
+    el.classList.remove('running');
+    const stored = await safeGet(keyWorkoutDuration(state.week, state.dayIdx));
+    el.textContent = stored ? formatElapsed(parseInt(stored, 10)) : '';
+  }
+}
+
+function startTimerTick(){
+  if(timerTickInterval) clearInterval(timerTickInterval);
+  timerTickInterval = setInterval(() => {
+    if(activeTimer) refreshTimerDisplay();
+  }, 1000);
+}
+
+async function startWorkoutTimer(){
+  activeTimer = { week: state.week, dayIdx: state.dayIdx, startEpochMs: Date.now(), lastLapEpochMs: Date.now() };
+  await safeSet(ACTIVE_TIMER_KEY, JSON.stringify(activeTimer));
+  refreshTimerDisplay();
+}
+
+async function stopWorkoutTimer(){
+  if(!activeTimer) return;
+  const elapsed = Date.now() - activeTimer.startEpochMs;
+  await safeSet(keyWorkoutDuration(activeTimer.week, activeTimer.dayIdx), String(elapsed));
+  await safeDelete(ACTIVE_TIMER_KEY);
+  activeTimer = null;
+  refreshTimerDisplay();
 }
 
 async function onNav(){
@@ -1461,7 +1502,9 @@ async function checkNewDay(){
     await safeSet(LAST_OPENED_KEY, today);
     return;
   }
-  if(lastOpened !== today){
+  // Don't prompt if a workout is already being timed (e.g. it's just past
+  // midnight mid-session) — only offer to start a new one on a fresh day.
+  if(lastOpened !== today && !activeTimer){
     openNewDayModal();
   }
   // if lastOpened === today, we've already been opened today — do nothing
@@ -1474,15 +1517,15 @@ function closeNewDayModal(){
   document.getElementById('newDayModal').classList.remove('open');
 }
 
-async function skipNewDayImport(){
+async function startWorkoutTimerFromModal(){
   await safeSet(LAST_OPENED_KEY, todayDateStr());
+  await startWorkoutTimer();
   closeNewDayModal();
 }
 
-async function importFromNewDayModal(){
-  const text = document.getElementById('newDayImportArea').value;
+async function dismissNewDayPrompt(){
   await safeSet(LAST_OPENED_KEY, todayDateStr());
-  await importBackup(text); // will confirm(), alert(), and reload() on success
+  closeNewDayModal();
 }
 
 function wireFilePickers(){
@@ -1493,17 +1536,6 @@ function wireFilePickers(){
     const reader = new FileReader();
     reader.onload = () => {
       document.getElementById('importArea').value = reader.result;
-    };
-    reader.readAsText(file);
-  });
-
-  const newDayInput = document.getElementById('newDayFileInput');
-  newDayInput.addEventListener('change', (e) => {
-    const file = e.target.files[0];
-    if(!file) return;
-    const reader = new FileReader();
-    reader.onload = () => {
-      document.getElementById('newDayImportArea').value = reader.result;
     };
     reader.readAsText(file);
   });
@@ -1538,7 +1570,9 @@ async function init(){
     loadSubPrefs(),
     loadDayEntries(),
     loadPrevWeekEntries(),
+    loadActiveTimer(),
   ]);
+  startTimerTick();
   renderDay();
 
   // Everything else only affects secondary UI (progress bar, backup banner,
