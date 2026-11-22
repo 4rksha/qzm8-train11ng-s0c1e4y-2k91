@@ -52,11 +52,6 @@
     background: var(--bg);
     padding: calc(18px + env(safe-area-inset-top)) 16px 8px;
   }
-  .workout-timer{
-    font-family: ui-monospace, 'SF Mono', 'Cascadia Code', Consolas, monospace;
-    font-size: 15px; font-weight:600; color: var(--text-dim); min-width:1px;
-  }
-  .workout-timer.running{ color: var(--accent); }
   .title-row{ display:flex; align-items:baseline; justify-content:space-between; gap:8px; }
   .app-title{ font-size: 28px; line-height:1; color: var(--text); }
   .app-title span{ color: var(--accent); }
@@ -217,7 +212,7 @@
   .variant-pill.active{ background:rgba(232,176,35,0.14); border-color:var(--accent); color:var(--accent); }
 
   .sets-wrap{ margin-top: 4px; }
-  .set-row{ display:grid; grid-template-columns: 42px 1fr 1fr; gap:8px; align-items:center; margin-bottom:7px; }
+  .set-row{ display:grid; grid-template-columns: 42px 1fr 1fr 52px; gap:8px; align-items:center; margin-bottom:7px; }
   .set-label{ font-family:ui-monospace,'SF Mono','Cascadia Code',Consolas,monospace; font-size:12px; color:var(--text-dim); }
   .set-input{
     background: var(--bg); border: 1px solid var(--line); border-radius:8px; color:var(--text);
@@ -229,11 +224,12 @@
   .set-row.done .set-input{ border-color: var(--ok); background: rgba(111,191,115,0.08); }
   .section-label{ font-size:10.5px; text-transform:uppercase; letter-spacing:0.08em; color:var(--text-faint); margin: 10px 0 4px; }
   .section-label:first-child{ margin-top:0; }
-  .col-labels{ display:grid; grid-template-columns: 42px 1fr 1fr; gap:8px; margin-bottom:4px; }
-  .col-labels.with-rir{ grid-template-columns: 42px 1fr 1fr 44px; }
+  .col-labels{ display:grid; grid-template-columns: 42px 1fr 1fr 52px; gap:8px; margin-bottom:4px; }
+  .col-labels.with-rir{ grid-template-columns: 42px 1fr 1fr 52px 44px; }
   .col-labels span{ font-size:10px; text-transform:uppercase; letter-spacing:0.06em; color:var(--text-faint); text-align:center; }
   .col-labels span:first-child{ text-align:left; }
-  .set-row.with-rir{ grid-template-columns: 42px 1fr 1fr 44px; }
+  .set-row.with-rir{ grid-template-columns: 42px 1fr 1fr 52px 44px; }
+  .set-target{ font-family:ui-monospace,'SF Mono','Cascadia Code',Consolas,monospace; font-size:13px; font-weight:600; color:var(--accent); text-align:center; white-space:nowrap; }
   .set-rir{ font-family:ui-monospace,'SF Mono','Cascadia Code',Consolas,monospace; font-size:13px; color:var(--text-dim); text-align:center; }
 
   .backup-banner{
@@ -308,6 +304,32 @@
   .gate-error{ color:var(--danger); font-size:13px; margin-top:14px; min-height:1em; }
 
   ::selection{ background: var(--accent-dim); }
+
+  /* long-press targets: no text selection / iOS callout while holding */
+  .ex-head, .week-badge-btn, .week-grid-item, .day-list-item{
+    -webkit-touch-callout:none; -webkit-user-select:none; user-select:none;
+  }
+  .ex-head a{ -webkit-touch-callout:none; }
+
+  /* cancelled (skipped) exercises / days / weeks */
+  .ex-card.cancelled{ border-style:dashed; }
+  .ex-card.cancelled .ex-name{ text-decoration:line-through; opacity:.6; }
+  .ex-card.cancelled .ex-body, .ex-card.cancelled .ex-note-inline, .ex-card.cancelled .ex-lower{
+    opacity:.4; pointer-events:none;
+  }
+  .cancel-chip{ color:var(--danger); border-color:var(--danger); }
+  .week-grid-item.cancelled{ border-style:dashed; border-color:var(--text-faint); background:transparent; color:var(--text-faint); text-decoration:line-through; }
+  .week-grid-item.cancelled::after{ content:'⊘'; position:absolute; bottom:2px; right:4px; font-size:10px; color:var(--text-faint); text-decoration:none; }
+  .day-list-item.cancelled{ border-style:dashed; opacity:.6; }
+  .day-list-item.cancelled .day-list-name{ text-decoration:line-through; }
+  .week-badge-btn.cancelled{ border-style:dashed; opacity:.7; }
+  .week-badge-btn.cancelled .week-badge-title{ text-decoration:line-through; }
+  .sheet-option{
+    display:block; width:100%; text-align:left; background:var(--surface-2); border:1px solid var(--line);
+    color:var(--text); padding:14px; border-radius:10px; font-size:15px; font-weight:600; margin-top:10px;
+    cursor:pointer; font-family:inherit;
+  }
+  .sheet-option.danger{ color:var(--danger); border-color:var(--danger); }
 </style>
 </head>
 <body>
@@ -324,7 +346,6 @@
   <div class="title-row">
     <div class="app-title display">TRAINING <span>LOG</span></div>
     <div style="display:flex; gap:10px; align-items:center; flex-shrink:0;">
-      <span class="workout-timer mono" id="workoutTimer"></span>
       <button class="info-btn" onclick="openWarmup()">i</button>
     </div>
   </div>
@@ -426,12 +447,23 @@
   </div>
 </div>
 
-<div class="modal-bg" id="newDayModal">
+<div class="modal-bg" id="actionSheetModal" style="z-index:80;">
   <div class="modal">
-    <h2>New Day</h2>
-    <p>Looks like this is your first time opening the app today. Ready to start timing today's workout?</p>
-    <button class="btn btn-primary" style="width:100%; margin-top:8px;" onclick="startWorkoutTimerFromModal()">Start workout timer</button>
-    <button class="modal-close" onclick="dismissNewDayPrompt()">Not now</button>
+    <h2 id="actionSheetTitle"></h2>
+    <p id="actionSheetSub"></p>
+    <div id="actionSheetOptions"></div>
+    <button class="modal-close" onclick="closeActionSheet()">Close</button>
+  </div>
+</div>
+
+<div class="modal-bg" id="confirmModal" style="z-index:90;">
+  <div class="modal">
+    <h2 id="confirmTitle"></h2>
+    <p id="confirmText"></p>
+    <div style="display:flex; gap:10px; margin-top:16px;">
+      <button class="btn btn-ghost" style="flex:1;" onclick="closeConfirm()">Go back</button>
+      <button class="btn btn-primary" style="flex:1;" id="confirmOk">Confirm</button>
+    </div>
   </div>
 </div>
 
@@ -504,10 +536,28 @@ let noteOpenEx = {};
 let tipExpanded = {};
 let currentExIdx = 0;
 let lastRenderedDayKey = null;
+let pendingExFocus = null;   // null | 'firstIncomplete' | number — one-shot override when entering a day
+let savedExIdx = null;       // last exercise viewed on the day being opened (loaded from storage)
 let scrollTicking = false;
+let skipSet = new Set();     // every cancelled week / day / exercise key
 
 function keyEntry(week, dayIdx, exIdx){ return `log:${week}:${dayIdx}:${exIdx}`; }
 function keyDayDone(week, dayIdx){ return `daydone:${week}:${dayIdx}`; }
+function keyLastEx(week, dayIdx){ return `lastex:${week}:${dayIdx}`; }
+function keySkipWeek(week){ return `skip:${week}`; }
+function keySkipDay(week, dayIdx){ return `skip:${week}:${dayIdx}`; }
+function keySkipEx(week, dayIdx, exIdx){ return `skip:${week}:${dayIdx}:${exIdx}`; }
+
+// ---- Cancelled (skipped) items ----
+// Cancelling never deletes anything you logged; it only marks the item as skipped,
+// and a skipped item counts as done. Restoring just removes the mark.
+async function loadSkips(){
+  skipSet = new Set(await safeList('skip:'));
+}
+function isWeekSkipped(w){ return skipSet.has(keySkipWeek(w)); }
+function isDaySkipped(w, d){ return isWeekSkipped(w) || skipSet.has(keySkipDay(w, d)); }
+function isExSkipped(w, d, e){ return isDaySkipped(w, d) || skipSet.has(keySkipEx(w, d, e)); }
+function dayEffDone(doneSet, w, d){ return isDaySkipped(w, d) || doneSet.has(keyDayDone(w, d)); }
 function sanitizeKeyPart(s){ return String(s).replace(/[^a-zA-Z0-9]+/g, '_').toLowerCase(); }
 function keySubPref(exerciseName){ return `subpref:${sanitizeKeyPart(exerciseName)}`; }
 function chronoOrder(week, dayIdx){ return week*100 + dayIdx; }
@@ -562,16 +612,6 @@ function parseSetCount(str){
 
 function totalDays(){ return PROGRAM.weeks.length * PROGRAM.weeks[0].days.length; }
 
-function formatElapsed(ms){
-  const totalSec = Math.max(0, Math.floor(ms / 1000));
-  const h = Math.floor(totalSec / 3600);
-  const m = Math.floor((totalSec % 3600) / 60);
-  const s = totalSec % 60;
-  const mm = String(m).padStart(2, '0');
-  const ss = String(s).padStart(2, '0');
-  return h > 0 ? `${h}:${mm}:${ss}` : `${mm}:${ss}`;
-}
-
 // A set counts as done purely from having both a weight and a rep count typed in —
 // there's no separate checkbox to tap.
 function isSetDone(s){
@@ -583,15 +623,20 @@ function isExerciseFullyDone(ex, entry){
   if(entry.sets.length < nWorking) return false;
   return entry.sets.every(isSetDone);
 }
+// An exercise counts as done if it was cancelled, or all its working sets are filled in.
+function isExDoneIdx(day, exIdx){
+  return isExSkipped(state.week, state.dayIdx, exIdx) || isExerciseFullyDone(day.exercises[exIdx], dayEntries[exIdx]);
+}
 function isDayFullyDone(day){
   if(!day.exercises.length) return false; // rest days aren't auto-completed
-  return day.exercises.every((ex, exIdx) => isExerciseFullyDone(ex, dayEntries[exIdx]));
+  return day.exercises.every((ex, exIdx) => isExDoneIdx(day, exIdx));
 }
 
 async function computeCompletion(){
   const total = totalDays();
-  const keys = await safeList('daydone:');
-  const done = keys.length;
+  const doneSet = new Set(await safeList('daydone:'));
+  let done = 0;
+  PROGRAM.weeks.forEach((wk, wi) => wk.days.forEach((_, di) => { if(dayEffDone(doneSet, wi+1, di)) done++; }));
   document.getElementById('progressFill').style.width = (done/total*100)+'%';
   document.getElementById('progressLabel').textContent = `${done} / ${total} days`;
   return done;
@@ -628,7 +673,7 @@ async function findNextIncomplete(){
   for(let w=1; w<=PROGRAM.weeks.length; w++){
     const week = PROGRAM.weeks[w-1];
     for(let d=0; d<week.days.length; d++){
-      if(!doneSet.has(keyDayDone(w, d))){
+      if(!dayEffDone(doneSet, w, d)){
         return { week: w, dayIdx: d };
       }
     }
@@ -656,10 +701,14 @@ async function updateWeekBadge(){
   const weekTypeLabel = week.weekType ? week.weekType.replace(/\w+/g, w => w[0] + w.slice(1).toLowerCase()) : '';
   document.getElementById('weekBadgeSub').textContent = weekTypeLabel ? (week.block + ' · ' + weekTypeLabel) : (week.block || '');
 
-  const doneKeys = await safeList(`daydone:${state.week}:`);
-  const frac = week.days.length ? (doneKeys.length / week.days.length) : 0;
-  const weekComplete = week.days.length > 0 && doneKeys.length === week.days.length;
-  const ringColor = weekComplete ? 'var(--ok)' : weekColor(state.week);
+  const doneSet = new Set(await safeList(`daydone:${state.week}:`));
+  const doneCount = week.days.filter((_, di) => dayEffDone(doneSet, state.week, di)).length;
+  const frac = week.days.length ? (doneCount / week.days.length) : 0;
+  const weekComplete = week.days.length > 0 && doneCount === week.days.length;
+  const weekCancelled = isWeekSkipped(state.week);
+  document.getElementById('weekBadgeBtn').classList.toggle('cancelled', weekCancelled);
+  document.getElementById('weekBadgeTitle').textContent = 'WEEK ' + state.week + (weekCancelled ? ' · CANCELLED' : '');
+  const ringColor = weekCancelled ? 'var(--text-faint)' : (weekComplete ? 'var(--ok)' : weekColor(state.week));
   const circle = document.getElementById('weekProgressCircle');
   if(circle){
     circle.setAttribute('stroke-dasharray', WEEK_CIRCUMFERENCE.toFixed(1));
@@ -752,11 +801,27 @@ function attachSwipeNav(el, prevFn, nextFn, canPrev, canNext){
   });
 }
 
+// Selecting a week: if every day in it is finished (or cancelled) land on its first
+// exercise of day 1; otherwise land on the closest unfinished day and its first
+// unfinished exercise.
+async function jumpToWeek(wk){
+  const doneSet = new Set(await safeList('daydone:'));
+  const weekObj = PROGRAM.weeks[wk-1];
+  let target = -1;
+  for(let d=0; d<weekObj.days.length; d++){
+    if(!dayEffDone(doneSet, wk, d)){ target = d; break; }
+  }
+  state.week = wk;
+  lastRenderedDayKey = null; // force the "entering a day" logic even if it's the same day
+  if(target === -1){ state.dayIdx = 0; pendingExFocus = 0; }
+  else { state.dayIdx = target; pendingExFocus = 'firstIncomplete'; }
+  await onNav();
+}
 function goPrevWeek(){
-  if(state.week > 1){ state.week--; state.dayIdx = 0; onNav(); }
+  if(state.week > 1) jumpToWeek(state.week - 1);
 }
 function goNextWeek(){
-  if(state.week < PROGRAM.weeks.length){ state.week++; state.dayIdx = 0; onNav(); }
+  if(state.week < PROGRAM.weeks.length) jumpToWeek(state.week + 1);
 }
 
 function openWeekModal(){
@@ -782,21 +847,23 @@ async function renderWeekModalList(){
     const grid = document.createElement('div');
     grid.className = 'week-grid';
     for(const wk of block.weeks){
-      const doneKeys = await safeList(`daydone:${wk}:`);
+      const doneSet = new Set(await safeList(`daydone:${wk}:`));
       const weekObj = PROGRAM.weeks[wk-1];
-      const complete = doneKeys.length === weekObj.days.length;
-      const isNextUp = !complete && nextIncomplete && nextIncomplete.week === wk;
+      const cancelled = isWeekSkipped(wk);
+      const complete = !cancelled && weekObj.days.every((_, di) => dayEffDone(doneSet, wk, di));
+      const isNextUp = !complete && !cancelled && nextIncomplete && nextIncomplete.week === wk;
       const btn = document.createElement('button');
       btn.className = 'week-grid-item'
         + (wk===state.week ? ' active' : '')
+        + (cancelled ? ' cancelled' : '')
         + (complete ? ' complete' : '')
         + (isNextUp ? ' next-up' : '');
       btn.textContent = wk;
       btn.addEventListener('click', () => {
-        state.week = wk; state.dayIdx = 0;
         closeWeekModal();
-        onNav();
+        jumpToWeek(wk);
       });
+      attachLongPress(btn, () => showSkipMenu('week', wk));
       grid.appendChild(btn);
     }
     container.appendChild(grid);
@@ -821,16 +888,18 @@ async function updateSplitBadge(){
   const week = PROGRAM.weeks[state.week-1];
   const day = week.days[state.dayIdx];
   document.getElementById('dayBadgeNum').textContent = state.dayIdx + 1;
-  document.getElementById('dayBadgeTitle').textContent = 'DAY ' + (state.dayIdx + 1);
   document.getElementById('dayBadgeSub').textContent = day.name;
 
   const doneKeys = await safeList(`daydone:${state.week}:${state.dayIdx}`);
   const complete = doneKeys.includes(keyDayDone(state.week, state.dayIdx));
+  const cancelled = isDaySkipped(state.week, state.dayIdx);
+  document.getElementById('dayBadgeBtn').classList.toggle('cancelled', cancelled);
+  document.getElementById('dayBadgeTitle').textContent = 'DAY ' + (state.dayIdx + 1) + (cancelled ? ' · CANCELLED' : '');
   const circle = document.getElementById('dayProgressCircle');
   if(circle){
     circle.setAttribute('stroke-dasharray', WEEK_CIRCUMFERENCE.toFixed(1));
     circle.setAttribute('stroke-dashoffset', '0'); // always a full ring; color communicates state
-    circle.setAttribute('stroke', complete ? 'var(--ok)' : splitColor(day.name));
+    circle.setAttribute('stroke', cancelled ? 'var(--text-faint)' : (complete ? 'var(--ok)' : splitColor(day.name)));
   }
 }
 
@@ -858,14 +927,16 @@ async function renderDayModalList(){
   const nextIncomplete = await findNextIncomplete();
 
   week.days.forEach((d, i) => {
-    const complete = doneKeys.includes(keyDayDone(state.week, i));
-    const isNextUp = !complete && nextIncomplete && nextIncomplete.week === state.week && nextIncomplete.dayIdx === i;
+    const cancelled = isDaySkipped(state.week, i);
+    const complete = !cancelled && doneKeys.includes(keyDayDone(state.week, i));
+    const isNextUp = !complete && !cancelled && nextIncomplete && nextIncomplete.week === state.week && nextIncomplete.dayIdx === i;
     const btn = document.createElement('button');
-    btn.className = 'day-list-item' + (i===state.dayIdx ? ' active' : '') + (complete ? ' complete' : '');
+    btn.className = 'day-list-item' + (i===state.dayIdx ? ' active' : '') + (complete ? ' complete' : '') + (cancelled ? ' cancelled' : '');
     btn.innerHTML = `
-      <span class="day-list-num" style="color:${complete ? 'var(--ok)' : splitColor(d.name)}">Day ${i+1}</span>
+      <span class="day-list-num" style="color:${cancelled ? 'var(--text-faint)' : (complete ? 'var(--ok)' : splitColor(d.name))}">Day ${i+1}</span>
       <span class="day-list-name">${d.name}</span>
       ${complete ? '<span class="day-list-check">✓</span>' : ''}
+      ${cancelled ? '<span class="next-badge" style="background:transparent; color:var(--text-faint); border:1px solid var(--text-faint);">Cancelled</span>' : ''}
       ${isNextUp ? '<span class="next-badge">Next</span>' : ''}
     `;
     btn.addEventListener('click', () => {
@@ -873,6 +944,7 @@ async function renderDayModalList(){
       closeDayModal();
       onNav();
     });
+    attachLongPress(btn, () => showSkipMenu('day', state.week, i));
     container.appendChild(btn);
   });
 }
@@ -965,7 +1037,10 @@ function buildExerciseCard(day, exIdx, slide){
   dayEntries[exIdx] = entry;
 
   const card = document.createElement('div');
-  card.className = 'ex-card';
+  const cancelled = isExSkipped(state.week, state.dayIdx, exIdx);
+  card.className = 'ex-card' + (cancelled ? ' cancelled' : '');
+  const cancelLabel = isWeekSkipped(state.week) ? 'Week cancelled'
+    : (isDaySkipped(state.week, state.dayIdx) ? 'Day cancelled' : 'Cancelled');
 
   const isOpen = !!expandedEx[exIdx];
 
@@ -992,7 +1067,7 @@ function buildExerciseCard(day, exIdx, slide){
         ${selected.videoUrl ? `<a href="${selected.videoUrl}" target="_blank" rel="noopener" class="meta-chip video-chip" onclick="event.stopPropagation()">▶ Watch demo</a>` : ''}
         <div class="meta-chip">Sets <b>${ex.workingSets}</b></div>
         <div class="meta-chip">Rest <b>${ex.rest}</b></div>
-        ${entry.lapMs ? `<div class="meta-chip">⏱ <b>${formatElapsed(entry.lapMs)}</b></div>` : ''}
+        ${cancelled ? `<div class="meta-chip cancel-chip">⊘ ${cancelLabel}</div>` : ''}
       </div>
     </div>
     <div class="ex-body ${isOpen?'open':''}" id="body-${exIdx}">
@@ -1003,14 +1078,14 @@ function buildExerciseCard(day, exIdx, slide){
       ${ex.technique && ex.technique!=='N/A' ? `<div class="sub-block"><b>Technique:</b> ${ex.technique}</div>` : ''}
     </div>
     ${ex.notes ? `<div class="ex-note-inline${tipExpanded[exIdx] ? '' : ' clamped'}" id="tip-${exIdx}">${ex.notes}</div>` : ''}
-    <div style="padding:0 14px 14px;">
+    <div class="ex-lower" style="padding:0 14px 14px;">
       ${nWarmup > 0 ? `
       <div class="section-label">Warm-up (${ex.warmupSets} set${nWarmup>1?'s':''})</div>
-      <div class="col-labels"><span>Set</span><span>Weight</span><span>Reps</span></div>
+      <div class="col-labels"><span>Set</span><span>Weight</span><span>Reps</span><span>Target</span></div>
       <div class="sets-wrap" id="warmup-${exIdx}"></div>
       ` : ''}
       <div class="section-label">Working sets</div>
-      <div class="col-labels with-rir"><span>Set</span><span>Weight</span><span>Reps</span><span>RIR</span></div>
+      <div class="col-labels with-rir"><span>Set</span><span>Weight</span><span>Reps</span><span>Target</span><span>RIR</span></div>
       <div class="sets-wrap" id="sets-${exIdx}"></div>
       <div class="note-section">
         <button class="note-toggle ${entry.userNote ? 'has-note' : ''}" id="notebtn-${exIdx}">${entry.userNote ? 'Edit your note <span class="note-dot"></span>' : '+ Add a note'}</button>
@@ -1027,6 +1102,8 @@ function buildExerciseCard(day, exIdx, slide){
       renderDay();
     });
   }
+  // Long-press the exercise header to cancel / restore it.
+  attachLongPress(card.querySelector('.ex-head'), () => showSkipMenu('exercise', state.week, state.dayIdx, exIdx, selected.name));
 
   const tipEl = card.querySelector(`#tip-${exIdx}`);
   if(tipEl){
@@ -1098,18 +1175,19 @@ function buildExerciseCard(day, exIdx, slide){
     return null;
   }
 
-  function buildRows(container, arr, labelPrefix, repsPlaceholder, rirGetter, prevArr){
+  function buildRows(container, arr, labelPrefix, targetText, rirGetter, prevArr){
     arr.forEach((s, si) => {
       const row = document.createElement('div');
       row.className = 'set-row' + (rirGetter ? ' with-rir' : '') + (isSetDone(s) ? ' done' : '');
       const rirValue = rirGetter ? rirGetter(si) : null;
       const prevSet = prevArr && prevArr[si];
       const weightPlaceholder = (prevSet && prevSet.weight) ? prevSet.weight : 'kg';
-      const rowRepsPlaceholder = (prevSet && prevSet.reps) ? prevSet.reps : repsPlaceholder;
+      const rowRepsPlaceholder = (prevSet && prevSet.reps) ? prevSet.reps : 'reps';
       row.innerHTML = `
         <div class="set-label">${labelPrefix}${si+1}</div>
         <input class="set-input" inputmode="decimal" placeholder="${weightPlaceholder}" value="${s.weight}">
         <input class="set-input" inputmode="numeric" placeholder="${rowRepsPlaceholder}" value="${s.reps}">
+        <div class="set-target">${targetText}</div>
         ${rirGetter ? `<div class="set-rir">${rirValue !== null && rirValue !== undefined ? rirValue : '—'}</div>` : ''}
       `;
       const wInput = row.querySelector('.set-input:nth-of-type(1)');
@@ -1140,34 +1218,37 @@ function ensureExerciseRendered(day, exIdx){
   renderedExIdx.add(exIdx);
 }
 
-// Rebuilds a card in place even if it was already rendered — used when something
-// about that exercise changed (e.g. a lap time was just recorded for it) and the
-// on-screen card needs to reflect it without waiting for a full renderDay().
-function rebuildExerciseCard(day, exIdx){
-  if(exIdx < 0 || exIdx >= day.exercises.length) return;
-  const carousel = document.getElementById('exerciseCarousel');
-  const slide = carousel.querySelector(`.exercise-slide[data-exidx="${exIdx}"]`);
-  if(!slide) return;
-  buildExerciseCard(day, exIdx, slide);
-  renderedExIdx.add(exIdx);
-}
-
 function renderDay(){
   const week = PROGRAM.weeks[state.week-1];
   const day = week.days[state.dayIdx];
   const dayKey = `${state.week}:${state.dayIdx}`;
   const isFreshDay = dayKey !== lastRenderedDayKey;
-  if(isFreshDay){ currentExIdx = 0; lastRenderedDayKey = dayKey; }
+  if(isFreshDay){
+    currentExIdx = 0;
+    lastRenderedDayKey = dayKey;
+    if(pendingExFocus === 'firstIncomplete'){
+      // picked a week: closest unfinished exercise of the closest unfinished day
+      const idx = day.exercises.findIndex((ex, i) => !isExDoneIdx(day, i));
+      if(idx !== -1) currentExIdx = idx;
+    } else if(typeof pendingExFocus === 'number'){
+      currentExIdx = pendingExFocus;
+    } else if(savedExIdx !== null){
+      // returning to a day: back to the exercise I was last on
+      currentExIdx = savedExIdx;
+    }
+    pendingExFocus = null;
+    if(currentExIdx >= day.exercises.length) currentExIdx = 0;
+  }
 
   const carousel = document.getElementById('exerciseCarousel');
   const dotsEl = document.getElementById('exerciseDots');
   carousel.innerHTML = '';
   dotsEl.innerHTML = '';
   renderedExIdx = new Set();
+  carousel.dataset.dayKey = ''; // scroll events are ignored until the new cards are in place
 
   if(!day.exercises.length){
     carousel.innerHTML = '<div class="empty-day">Rest day. Recover well.</div>';
-    refreshTimerDisplay();
     return;
   }
 
@@ -1205,9 +1286,9 @@ function renderDay(){
   // so re-renders triggered by expand/note toggles don't jump the carousel back to exercise 1
   requestAnimationFrame(() => {
     carousel.scrollLeft = currentExIdx * carousel.clientWidth;
+    carousel.dataset.dayKey = dayKey;
   });
 
-  refreshTimerDisplay();
   syncDayCompletion();
 }
 
@@ -1216,11 +1297,11 @@ function onCarouselScroll(){
   scrollTicking = true;
   requestAnimationFrame(() => {
     const carousel = document.getElementById('exerciseCarousel');
-    if(carousel && carousel.clientWidth){
+    if(carousel && carousel.clientWidth && carousel.dataset.dayKey === `${state.week}:${state.dayIdx}`){
       const idx = Math.round(carousel.scrollLeft / carousel.clientWidth);
       if(idx !== currentExIdx){
-        const prevIdx = currentExIdx;
         currentExIdx = idx;
+        safeSet(keyLastEx(state.week, state.dayIdx), String(idx));
         document.querySelectorAll('.exercise-dot').forEach((d, i) => {
           d.classList.toggle('active', i === currentExIdx);
         });
@@ -1229,30 +1310,10 @@ function onCarouselScroll(){
         ensureExerciseRendered(day, idx);
         ensureExerciseRendered(day, idx - 1);
         ensureExerciseRendered(day, idx + 1);
-        maybeRecordLap(day, prevIdx);
       }
     }
     scrollTicking = false;
   });
-}
-
-// Records a lap time for the exercise being left, but only if: a timer is
-// actively running for today's session, that exercise's working sets are all
-// filled in (weight + reps), and it hasn't already been lapped.
-function maybeRecordLap(day, exIdx){
-  if(exIdx < 0 || exIdx >= day.exercises.length) return;
-  if(!activeTimer || activeTimer.week !== state.week || activeTimer.dayIdx !== state.dayIdx) return;
-  const ex = day.exercises[exIdx];
-  const entry = dayEntries[exIdx];
-  if(!entry || entry.lapMs) return;
-  if(!isExerciseFullyDone(ex, entry)) return;
-  const lastEpoch = activeTimer.lastLapEpochMs || activeTimer.startEpochMs;
-  const now = Date.now();
-  entry.lapMs = now - lastEpoch;
-  saveEntry(exIdx);
-  activeTimer.lastLapEpochMs = now;
-  safeSet(ACTIVE_TIMER_KEY, JSON.stringify(activeTimer));
-  rebuildExerciseCard(day, exIdx);
 }
 
 let saveTimers = {};
@@ -1266,11 +1327,11 @@ function saveEntry(exIdx){
 
 // ---- Automatic day completion ----
 // A day is "complete" the moment every working set of every exercise has both
-// a weight and a rep count filled in — no button to press. This both drives
-// the progress bar / day badge, and is what silently stops the workout timer.
+// a weight and a rep count filled in — no button to press.
 async function syncDayCompletion(){
   const week = PROGRAM.weeks[state.week-1];
   const day = week.days[state.dayIdx];
+  if(isDaySkipped(state.week, state.dayIdx)) return; // cancelled days are counted separately
   const key = keyDayDone(state.week, state.dayIdx);
   const existing = await safeList(key);
   const wasComplete = existing.includes(key);
@@ -1279,9 +1340,6 @@ async function syncDayCompletion(){
     await safeSet(key, 'true');
     await updateSplitBadge();
     await computeCompletion();
-    if(activeTimer && activeTimer.week === state.week && activeTimer.dayIdx === state.dayIdx){
-      await stopWorkoutTimer();
-    }
   } else if(!nowComplete && wasComplete){
     await safeDelete(key);
     await updateSplitBadge();
@@ -1289,62 +1347,129 @@ async function syncDayCompletion(){
   }
 }
 
-// ---- Workout timer ----
-const ACTIVE_TIMER_KEY = '_meta:active-timer';
-let activeTimer = null; // { week, dayIdx, startEpochMs, lastLapEpochMs }
-let timerTickInterval = null;
+// ---- Long-press helper ----
+// Holding an element ~0.5s fires fn(); the click that would normally follow the
+// release is swallowed so it doesn't also trigger the element's tap action.
+let suppressNextClick = false;
+document.addEventListener('click', (e) => {
+  if(suppressNextClick){ suppressNextClick = false; e.stopPropagation(); e.preventDefault(); }
+}, true);
+// a brand-new touch means the click that followed the long-press release is long gone
+document.addEventListener('pointerdown', () => { suppressNextClick = false; }, true);
 
-async function loadActiveTimer(){
-  const raw = await safeGet(ACTIVE_TIMER_KEY);
-  if(raw){ try{ activeTimer = JSON.parse(raw); }catch(e){ activeTimer = null; } }
+function attachLongPress(el, fn, ms){
+  const HOLD = ms || 500, MOVE_TOL = 10;
+  let timer = null, sx = 0, sy = 0;
+  const cancel = () => { if(timer){ clearTimeout(timer); timer = null; } };
+  el.addEventListener('pointerdown', (e) => {
+    if(e.button !== undefined && e.button > 0) return;
+    sx = e.clientX; sy = e.clientY;
+    cancel();
+    timer = setTimeout(() => {
+      timer = null;
+      suppressNextClick = true;
+      setTimeout(() => { suppressNextClick = false; }, 1500); // safety: never leave it stuck on
+      fn();
+    }, HOLD);
+  });
+  el.addEventListener('pointermove', (e) => {
+    if(timer && (Math.abs(e.clientX - sx) > MOVE_TOL || Math.abs(e.clientY - sy) > MOVE_TOL)) cancel();
+  });
+  ['pointerup', 'pointercancel', 'pointerleave'].forEach(t => el.addEventListener(t, cancel));
+  el.addEventListener('contextmenu', (e) => e.preventDefault());
 }
 
-function keyWorkoutDuration(week, dayIdx){ return `workout-duration:${week}:${dayIdx}`; }
+// ---- Cancel / restore ----
+function openActionSheet(title, sub, options){
+  document.getElementById('actionSheetTitle').textContent = title;
+  document.getElementById('actionSheetSub').textContent = sub || '';
+  const wrap = document.getElementById('actionSheetOptions');
+  wrap.innerHTML = '';
+  options.forEach(o => {
+    const b = document.createElement('button');
+    b.className = 'sheet-option' + (o.danger ? ' danger' : '');
+    b.textContent = o.label;
+    b.addEventListener('click', () => { closeActionSheet(); o.run(); });
+    wrap.appendChild(b);
+  });
+  document.getElementById('actionSheetModal').classList.add('open');
+}
+function closeActionSheet(){ document.getElementById('actionSheetModal').classList.remove('open'); }
 
-async function refreshTimerDisplay(){
-  const el = document.getElementById('workoutTimer');
-  if(!el) return;
-  if(activeTimer && activeTimer.week === state.week && activeTimer.dayIdx === state.dayIdx){
-    el.textContent = formatElapsed(Date.now() - activeTimer.startEpochMs);
-    el.classList.add('running');
+function openConfirm(title, text, okLabel, onOk, danger){
+  document.getElementById('confirmTitle').textContent = title;
+  document.getElementById('confirmText').textContent = text;
+  const ok = document.getElementById('confirmOk');
+  ok.textContent = okLabel;
+  ok.style.background = danger ? 'var(--danger)' : '';
+  ok.style.color = danger ? '#fff' : '';
+  ok.onclick = () => { closeConfirm(); onOk(); };
+  document.getElementById('confirmModal').classList.add('open');
+}
+function closeConfirm(){ document.getElementById('confirmModal').classList.remove('open'); }
+
+// kind: 'exercise' | 'day' | 'week'. If a bigger container is already cancelled, the
+// only sensible action is restoring that container, so that's what the menu offers.
+function showSkipMenu(kind, w, d, e, exName){
+  let target = kind;
+  if(kind === 'exercise' && isDaySkipped(w, d)) target = isWeekSkipped(w) ? 'week' : 'day';
+  else if(kind === 'day' && isWeekSkipped(w)) target = 'week';
+
+  const key = target === 'week' ? keySkipWeek(w) : (target === 'day' ? keySkipDay(w, d) : keySkipEx(w, d, e));
+  const isCancelled = skipSet.has(key);
+  const noun = target;
+  const what = target === 'week' ? `Week ${w}` : (target === 'day' ? `Week ${w} · Day ${d+1}` : (exName || 'this exercise'));
+  const list = target === 'week' ? 'every day in it' : (target === 'day' ? 'every exercise in it' : '');
+
+  if(isCancelled){
+    openActionSheet(what, `This ${noun} is cancelled.`, [
+      { label: `Restore ${noun}`, run: () => openConfirm(
+          `Restore ${noun}?`,
+          `${what} goes back to normal${list ? ` — ${list} will count as it did before` : ''}. Anything you logged is still there.`,
+          `Restore ${noun}`, () => setSkipped(key, false), false) }
+    ]);
   } else {
-    el.classList.remove('running');
-    const stored = await safeGet(keyWorkoutDuration(state.week, state.dayIdx));
-    el.textContent = stored ? formatElapsed(parseInt(stored, 10)) : '';
+    openActionSheet(what, '', [
+      { label: `Cancel ${noun}`, danger: true, run: () => openConfirm(
+          `Cancel ${noun}?`,
+          `${what} will be skipped and count as done. Nothing you logged is deleted, and you can restore it any time by long-pressing it again.`,
+          `Cancel ${noun}`, () => setSkipped(key, true), true) }
+    ]);
   }
 }
 
-function startTimerTick(){
-  if(timerTickInterval) clearInterval(timerTickInterval);
-  timerTickInterval = setInterval(() => {
-    if(activeTimer) refreshTimerDisplay();
-  }, 1000);
+async function setSkipped(key, on){
+  if(on){ skipSet.add(key); await safeSet(key, '1'); }
+  else { skipSet.delete(key); await safeDelete(key); }
+  // keep the user where they are, just redraw everything that depends on it
+  lastRenderedDayKey = `${state.week}:${state.dayIdx}`;
+  await updateWeekBadge();
+  await updateSplitBadge();
+  renderDay();
+  computeCompletion();
+  if(document.getElementById('weekModal').classList.contains('open')) renderWeekModalList();
+  if(document.getElementById('dayModal').classList.contains('open')) renderDayModalList();
 }
 
-async function startWorkoutTimer(){
-  activeTimer = { week: state.week, dayIdx: state.dayIdx, startEpochMs: Date.now(), lastLapEpochMs: Date.now() };
-  await safeSet(ACTIVE_TIMER_KEY, JSON.stringify(activeTimer));
-  refreshTimerDisplay();
-}
-
-async function stopWorkoutTimer(){
-  if(!activeTimer) return;
-  const elapsed = Date.now() - activeTimer.startEpochMs;
-  await safeSet(keyWorkoutDuration(activeTimer.week, activeTimer.dayIdx), String(elapsed));
-  await safeDelete(ACTIVE_TIMER_KEY);
-  activeTimer = null;
-  refreshTimerDisplay();
+async function loadSavedExercise(){
+  const v = await safeGet(keyLastEx(state.week, state.dayIdx));
+  const n = v === null ? NaN : parseInt(v, 10);
+  savedExIdx = Number.isNaN(n) ? null : n; // null = never opened this day -> start at the first exercise
 }
 
 async function onNav(){
   await updateWeekBadge();
   await updateSplitBadge();
   await updateHeaderStatus();
-  document.getElementById('exerciseCarousel').innerHTML = '<div class="loading">Loading…</div>';
+  const carousel = document.getElementById('exerciseCarousel');
+  carousel.dataset.dayKey = '';
+  carousel.innerHTML = '<div class="loading">Loading…</div>';
   await safeSet('current-position', JSON.stringify(state));
   await loadDayEntries();
   await loadPrevWeekEntries();
+  await loadSavedExercise();
   renderDay();
+  computeCompletion();
 }
 
 const LAST_BACKUP_KEY = '_meta:last-backup';
@@ -1487,47 +1612,6 @@ async function importBackup(jsonText){
   location.reload();
 }
 
-// ---- New Day modal ----
-const LAST_OPENED_KEY = '_meta:last-opened-date';
-
-function todayDateStr(){
-  return new Date().toISOString().slice(0, 10); // YYYY-MM-DD
-}
-
-async function checkNewDay(){
-  const lastOpened = await safeGet(LAST_OPENED_KEY);
-  const today = todayDateStr();
-  if(!lastOpened){
-    // first time ever opening this app — nothing to compare against, just record today
-    await safeSet(LAST_OPENED_KEY, today);
-    return;
-  }
-  // Don't prompt if a workout is already being timed (e.g. it's just past
-  // midnight mid-session) — only offer to start a new one on a fresh day.
-  if(lastOpened !== today && !activeTimer){
-    openNewDayModal();
-  }
-  // if lastOpened === today, we've already been opened today — do nothing
-}
-
-function openNewDayModal(){
-  document.getElementById('newDayModal').classList.add('open');
-}
-function closeNewDayModal(){
-  document.getElementById('newDayModal').classList.remove('open');
-}
-
-async function startWorkoutTimerFromModal(){
-  await safeSet(LAST_OPENED_KEY, todayDateStr());
-  await startWorkoutTimer();
-  closeNewDayModal();
-}
-
-async function dismissNewDayPrompt(){
-  await safeSet(LAST_OPENED_KEY, todayDateStr());
-  closeNewDayModal();
-}
-
 function wireFilePickers(){
   const restoreInput = document.getElementById('restoreFileInput');
   restoreInput.addEventListener('change', (e) => {
@@ -1559,6 +1643,10 @@ async function init(){
   dayBadgeBtn.addEventListener('click', openDayModal);
   document.getElementById('exerciseCarousel').addEventListener('scroll', onCarouselScroll, {passive:true});
   wireFilePickers();
+  attachLongPress(weekBadgeBtn, () => showSkipMenu('week', state.week));
+  attachLongPress(dayBadgeBtn, () => showSkipMenu('day', state.week, state.dayIdx));
+
+  await loadSkips();
 
   // Critical path only: fetch what's needed to paint the current day/exercise,
   // running these concurrently instead of one after another so the app isn't
@@ -1570,17 +1658,15 @@ async function init(){
     loadSubPrefs(),
     loadDayEntries(),
     loadPrevWeekEntries(),
-    loadActiveTimer(),
+    loadSavedExercise(),
   ]);
-  startTimerTick();
   renderDay();
 
-  // Everything else only affects secondary UI (progress bar, backup banner,
-  // new-day prompt) — let these resolve in the background after the workout
-  // is already on screen, instead of delaying it.
+  // Everything else only affects secondary UI (progress bar, backup banner)
+  // — let these resolve in the background after the workout is already on
+  // screen, instead of delaying it.
   computeCompletion();
   refreshBackupStatus();
-  checkNewDay();
 }
 
 async function boot(){
