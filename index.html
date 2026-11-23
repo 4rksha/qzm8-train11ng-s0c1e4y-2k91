@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="robots" content="noindex, nofollow">
-<meta name="app-version" content="1.2.2">
+<meta name="app-version" content="1.3.0">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <link rel="manifest" href="manifest.json">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -122,13 +122,17 @@
   .cycle-bar .cycle-sub{ font-size:10.5px; color:var(--text-dim); }
   .title-cycle{ background:none; border:none; padding:0; font:inherit; font-size:inherit; letter-spacing:inherit; color:var(--text); cursor:pointer; -webkit-tap-highlight-color:transparent; white-space:pre; }
   .title-cycle span{ color:var(--accent); }
-  .run-int{ display:flex; align-items:center; gap:10px; width:100%; padding:9px 10px; margin-bottom:6px; background:var(--bg); border:1px solid var(--line); border-radius:8px; color:var(--text); font:inherit; font-size:14px; cursor:pointer; text-align:left; -webkit-tap-highlight-color:transparent; }
-  .run-int .run-box{ width:18px; height:18px; border-radius:5px; border:1.5px solid var(--text-faint); flex-shrink:0; display:flex; align-items:center; justify-content:center; font-size:12px; color:#000; }
-  .run-int .run-kind{ flex:1; }
-  .run-int .run-dur{ font-family:ui-monospace,'SF Mono',Consolas,monospace; color:var(--text-dim); }
-  .run-int.k-run .run-kind{ color:var(--accent); font-weight:700; }
-  .run-int.done{ border-color:var(--ok); background:rgba(111,191,115,0.08); }
-  .run-int.done .run-box{ background:var(--ok); border-color:var(--ok); }
+  .run-plan{ margin:4px 0 6px; }
+  .run-sq-row{ display:flex; align-items:center; gap:8px; }
+  .run-sq{ flex:1; border-radius:12px; padding:12px 8px; text-align:center; border:1.5px solid; display:flex; flex-direction:column; gap:3px; }
+  .run-sq span{ font-size:10.5px; letter-spacing:0.1em; font-weight:700; }
+  .run-sq b{ font-family:ui-monospace,'SF Mono',Consolas,monospace; font-size:20px; }
+  .run-sq.run{ border-color:#5FBF8F; background:rgba(95,191,143,0.12); color:#5FBF8F; }
+  .run-sq.walk{ border-color:#4F8FE8; background:rgba(79,143,232,0.12); color:#4F8FE8; }
+  .run-arrow, .run-arrow-down{ color:var(--text-dim); font-size:20px; line-height:1; }
+  .run-arrow-down{ text-align:center; margin:4px 0; }
+  .run-repeat{ text-align:center; color:var(--accent); font-size:12.5px; font-weight:600; margin-top:10px; }
+  .run-side{ font-size:12.5px; color:var(--text-dim); margin:6px 0; }
   .run-grid{ display:grid; grid-template-columns:1fr 1fr; gap:8px 10px; margin-top:4px; }
   .run-field label{ display:block; font-size:10.5px; text-transform:uppercase; letter-spacing:0.08em; color:var(--text-faint); margin-bottom:4px; }
   .run-field .set-input{ text-align:center; }
@@ -537,7 +541,7 @@
 let PROGRAM = null;
 
 // Bump on every change (x.y.z): shown at the bottom of the info (i) menu, also in the <meta name="app-version"> tag.
-const APP_VERSION = '1.2.2';
+const APP_VERSION = '1.3.0';
 const PROGRAM_DATA_KEY = 'program-data';
 
 function fmtDur(sec){
@@ -1186,6 +1190,7 @@ function runSummaryLine(run){
   const bits = [];
   if(hasVal(run.time)) bits.push(String(run.time).includes(':') ? run.time : (run.time + ' min'));
   if(hasVal(run.distance)) bits.push(String(run.distance).replace(',', '.') + ' km');
+  if(hasVal(run.cycles)) bits.push(run.cycles + ' cycles');
   const pc = paceText(run); if(pc !== '–') bits.push(pc);
   if(hasVal(run.hr)) bits.push('♥ ' + run.hr);
   if(hasVal(run.effort)) bits.push('effort ' + run.effort + '/10');
@@ -1197,18 +1202,25 @@ function buildRunCard(day, exIdx, slide){
   const ex = day.exercises[exIdx];
   let entry = dayEntries[exIdx];
   if(!entry) entry = {};
-  if(!entry.run) entry.run = { date:'', time:'', distance:'', hr:'', effort:'', note:'', intervals:[] };
+  if(!entry.run) entry.run = { date:'', time:'', distance:'', cycles:'', hr:'', effort:'', note:'' };
   const run = entry.run;
-  const intervals = ex.intervals || [];
-  const plannedSec = intervals.reduce((n, iv) => n + (iv.seconds || 0), 0);
-  run.intervals = intervals.map((_, i) => !!run.intervals[i]);
   dayEntries[exIdx] = entry;
   const cancelled = isExSkipped(state.week, state.dayIdx, exIdx);
   const cancelLabel = isWeekSkipped(state.week) ? 'Week cancelled' : (isDaySkipped(state.week, state.dayIdx) ? 'Day cancelled' : 'Cancelled');
-  const kindLabel = { warmup:'Warm-up walk', cooldown:'Cool-down walk', walk:'Walk', run:'Run' };
   const prev = prevWeekEntries[exIdx] && prevWeekEntries[exIdx].run;
   const prevLine = prev ? runSummaryLine(prev) : '';
   const esc = v => String(v == null ? '' : v).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;');
+
+  // The plan comes entirely from the program file: rows of one run square (+ an optional walk square)
+  // with a duration each; the rows are done in order (arrow down), then the whole block repeats.
+  const rows = Array.isArray(ex.rows) ? ex.rows : [];
+  const hasWalk = rows.some(r => r.walk);
+  const sq = (kind, sec) => `<div class="run-sq ${kind}"><span>${kind === 'run' ? 'RUN' : 'WALK'}</span><b>${fmtDur(sec)}</b></div>`;
+  const rowsHtml = rows.map((r, i) =>
+    (i > 0 ? '<div class="run-arrow-down">↓</div>' : '') +
+    `<div class="run-sq-row">${sq('run', r.run)}${r.walk ? '<div class="run-arrow">→</div>' + sq('walk', r.walk) : ''}</div>`
+  ).join('');
+  const repeat = ex.repeat > 1 ? `<div class="run-repeat">↻ repeat ${rows.length > 1 ? 'the whole block' : 'this'} · ${ex.repeat} rounds in total</div>` : '';
 
   const card = document.createElement('div');
   card.className = 'ex-card' + (cancelled ? ' cancelled' : '');
@@ -1216,19 +1228,21 @@ function buildRunCard(day, exIdx, slide){
     <div class="ex-head" data-exidx="${exIdx}">
       <div class="ex-name-row"><div class="ex-name">${esc(ex.title || ex.name)}</div></div>
       <div class="ex-meta">
-        <div class="meta-chip">Planned <b>${fmtDur(plannedSec)}</b></div>
+        ${ex.totalSeconds ? `<div class="meta-chip">Total <b>${fmtDur(ex.totalSeconds)}</b></div>` : ''}
         ${cancelled ? `<div class="meta-chip cancel-chip">⊘ ${cancelLabel}</div>` : ''}
       </div>
     </div>
     <div class="ex-lower" style="padding:0 14px 14px;">
-      <div class="section-label">Intervals — tick as you go</div>
-      <div id="ints-${exIdx}">
-        ${intervals.map((iv, i) => `<button type="button" class="run-int k-${iv.kind==='run'?'run':'other'}${run.intervals[i]?' done':''}" data-i="${i}"><span class="run-box">${run.intervals[i]?'✓':''}</span><span class="run-kind">${esc(iv.label || kindLabel[iv.kind] || iv.kind)}</span><span class="run-dur">${fmtDur(iv.seconds)}</span></button>`).join('')}
-      </div>
+      <div class="section-label">The plan</div>
+      ${ex.warmupSeconds ? `<div class="run-side">Start with a ${fmtDur(ex.warmupSeconds)} warm-up walk</div>` : ''}
+      <div class="run-plan">${rowsHtml}${repeat}</div>
+      ${ex.note ? `<div class="run-side">${esc(ex.note)}</div>` : ''}
+      ${ex.cooldownSeconds ? `<div class="run-side">Finish with a ${fmtDur(ex.cooldownSeconds)} cool-down walk</div>` : ''}
       <div class="section-label">Your run</div>
       <div class="run-grid">
         <div class="run-field"><label>Total time (mm:ss)</label><input class="set-input" data-f="time" inputmode="text" placeholder="e.g. 28:30" value="${esc(run.time)}"></div>
         <div class="run-field"><label>Distance (km)</label><input class="set-input" data-f="distance" inputmode="decimal" placeholder="e.g. 4.2" value="${esc(run.distance)}"></div>
+        ${hasWalk ? `<div class="run-field"><label>Run/walk cycles done</label><input class="set-input" data-f="cycles" inputmode="numeric" placeholder="e.g. 8" value="${esc(run.cycles)}"></div>` : ''}
         <div class="run-field"><label>Avg pace</label><div class="run-pace" id="pace-${exIdx}">${paceText(run)}</div></div>
         <div class="run-field"><label>Avg heart rate (bpm)</label><input class="set-input" data-f="hr" inputmode="numeric" placeholder="e.g. 152" value="${esc(run.hr)}"></div>
         <div class="run-field"><label>Perceived effort (1–10)</label><input class="set-input" data-f="effort" inputmode="numeric" placeholder="1–10" value="${esc(run.effort)}"></div>
@@ -1242,13 +1256,6 @@ function buildRunCard(day, exIdx, slide){
   slide.innerHTML = '';
   slide.appendChild(card);
 
-  card.querySelectorAll('.run-int').forEach(btn => btn.addEventListener('click', () => {
-    const i = parseInt(btn.dataset.i, 10);
-    run.intervals[i] = !run.intervals[i];
-    btn.classList.toggle('done', run.intervals[i]);
-    btn.querySelector('.run-box').textContent = run.intervals[i] ? '✓' : '';
-    saveEntry(exIdx);
-  }));
   card.querySelectorAll('[data-f]').forEach(inp => inp.addEventListener('input', () => {
     run[inp.dataset.f] = inp.value;
     if(!run.date && inp.dataset.f !== 'note' && hasVal(inp.value)) run.date = todayStr();
