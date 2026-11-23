@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="robots" content="noindex, nofollow">
-<meta name="app-version" content="1.3.0">
+<meta name="app-version" content="1.3.1">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <link rel="manifest" href="manifest.json">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -541,7 +541,7 @@
 let PROGRAM = null;
 
 // Bump on every change (x.y.z): shown at the bottom of the info (i) menu, also in the <meta name="app-version"> tag.
-const APP_VERSION = '1.3.0';
+const APP_VERSION = '1.3.1';
 const PROGRAM_DATA_KEY = 'program-data';
 
 function fmtDur(sec){
@@ -1235,7 +1235,7 @@ function buildRunCard(day, exIdx, slide){
     <div class="ex-lower" style="padding:0 14px 14px;">
       <div class="section-label">The plan</div>
       ${ex.warmupSeconds ? `<div class="run-side">Start with a ${fmtDur(ex.warmupSeconds)} warm-up walk</div>` : ''}
-      <div class="run-plan">${rowsHtml}${repeat}</div>
+      ${rows.length ? `<div class="run-plan">${rowsHtml}${repeat}</div>` : `<div class="run-side" style="color:var(--accent);">This run day has no plan in your program file — it was made for an older version of the app. Load the latest program file (info (i) → Backup &amp; restore → Change program…). Your logged data is kept.</div>`}
       ${ex.note ? `<div class="run-side">${esc(ex.note)}</div>` : ''}
       ${ex.cooldownSeconds ? `<div class="run-side">Finish with a ${fmtDur(ex.cooldownSeconds)} cool-down walk</div>` : ''}
       <div class="section-label">Your run</div>
