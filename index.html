@@ -3,6 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="robots" content="noindex, nofollow">
+<meta name="app-version" content="1.0.1">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <link rel="manifest" href="manifest.json">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -421,6 +422,7 @@
     <p style="margin-top:10px;">This program tracks RIR (Reps in Reserve) instead of RPE — lower numbers mean closer to failure, 0 means you couldn't get another rep. Week 1 is a lighter intro week; intensity ramps up toward true failure across the Foundation Block and Ramping Block. Full detail is in the program guidebook.</p>
     <button class="btn btn-ghost" style="width:100%; margin-top:14px;" onclick="closeWarmup(); openBackup();">Backup &amp; restore…</button>
     <button class="modal-close" onclick="closeWarmup()">Got it</button>
+    <div id="appVersion" style="text-align:center; margin-top:14px; font-size:11px; color:var(--text-faint); font-family:ui-monospace,'SF Mono',Consolas,monospace;"></div>
   </div>
 </div>
 
@@ -486,6 +488,8 @@
 <script>
 let PROGRAM = null;
 
+// Bump on every change (x.y.z): shown at the bottom of the info (i) menu, also in the <meta name="app-version"> tag.
+const APP_VERSION = '1.0.1';
 const PROGRAM_DATA_KEY = 'program-data';
 
 function validateProgram(p){
@@ -1529,7 +1533,10 @@ async function refreshBackupStatus(){
   }
 }
 
-function openWarmup(){ document.getElementById('warmupModal').classList.add('open'); }
+function openWarmup(){
+  document.getElementById('appVersion').textContent = 'Version ' + APP_VERSION;
+  document.getElementById('warmupModal').classList.add('open');
+}
 function closeWarmup(){ document.getElementById('warmupModal').classList.remove('open'); }
 function openBackup(){ document.getElementById('backupModal').classList.add('open'); refreshBackupStatus(); }
 function closeBackup(){ document.getElementById('backupModal').classList.remove('open'); }
@@ -1546,12 +1553,29 @@ async function exportData(){
 
 async function downloadBackup(){
   const json = await exportData();
+  const fileName = `transformation-log-backup-${new Date().toISOString().slice(0,10)}.json`;
+  // Preferred on phones: hand the file to the system share sheet ("Save to Files", AirDrop…).
+  // This sidesteps the browser's download mechanism, which on iOS can save the file with the wrong type.
+  try{
+    if(navigator.share && navigator.canShare){
+      const file = new File([json], fileName, { type: 'application/json' });
+      if(navigator.canShare({ files: [file] })){
+        await navigator.share({ files: [file], title: 'Training Log backup' });
+        await markBackedUp();
+        await refreshBackupStatus();
+        return;
+      }
+    }
+  }catch(e){
+    if(e && e.name === 'AbortError') return; // user closed the share sheet — nothing was saved
+    // any other failure: fall through to the regular download below
+  }
   try{
     const blob = new Blob([json], {type: 'application/json'});
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `transformation-log-backup-${new Date().toISOString().slice(0,10)}.json`;
+    a.download = fileName;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
