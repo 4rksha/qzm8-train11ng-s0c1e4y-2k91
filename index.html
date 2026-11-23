@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="robots" content="noindex, nofollow">
-<meta name="app-version" content="1.0.1">
+<meta name="app-version" content="1.2.2">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <link rel="manifest" href="manifest.json">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -54,7 +54,7 @@
     padding: calc(18px + env(safe-area-inset-top)) 16px 8px;
   }
   .title-row{ display:flex; align-items:baseline; justify-content:space-between; gap:8px; }
-  .app-title{ font-size: 28px; line-height:1; color: var(--text); }
+  .app-title{ font-size: 20px; line-height:1; color: var(--text); white-space:nowrap; min-width:0; }
   .app-title span{ color: var(--accent); }
   .info-btn{
     background:none; border: 1px solid var(--line); color: var(--text-dim);
@@ -112,6 +112,35 @@
     white-space:normal; line-height:1.3; word-break:break-word;
   }
 
+  .cycle-bar{
+    display:flex; align-items:center; justify-content:space-between; gap:10px;
+    margin: 0 16px 10px; padding:8px 14px; background:var(--surface); border:1px solid var(--line);
+    border-radius:12px; cursor:pointer; width:calc(100% - 32px); color:var(--text);
+    -webkit-tap-highlight-color:transparent; font:inherit;
+  }
+  .cycle-bar .cycle-title{ font-family:'Arial Narrow','Segoe UI Semibold',system-ui,sans-serif; font-weight:800; letter-spacing:0.05em; text-transform:uppercase; font-size:13px; }
+  .cycle-bar .cycle-sub{ font-size:10.5px; color:var(--text-dim); }
+  .title-cycle{ background:none; border:none; padding:0; font:inherit; font-size:inherit; letter-spacing:inherit; color:var(--text); cursor:pointer; -webkit-tap-highlight-color:transparent; white-space:pre; }
+  .title-cycle span{ color:var(--accent); }
+  .run-int{ display:flex; align-items:center; gap:10px; width:100%; padding:9px 10px; margin-bottom:6px; background:var(--bg); border:1px solid var(--line); border-radius:8px; color:var(--text); font:inherit; font-size:14px; cursor:pointer; text-align:left; -webkit-tap-highlight-color:transparent; }
+  .run-int .run-box{ width:18px; height:18px; border-radius:5px; border:1.5px solid var(--text-faint); flex-shrink:0; display:flex; align-items:center; justify-content:center; font-size:12px; color:#000; }
+  .run-int .run-kind{ flex:1; }
+  .run-int .run-dur{ font-family:ui-monospace,'SF Mono',Consolas,monospace; color:var(--text-dim); }
+  .run-int.k-run .run-kind{ color:var(--accent); font-weight:700; }
+  .run-int.done{ border-color:var(--ok); background:rgba(111,191,115,0.08); }
+  .run-int.done .run-box{ background:var(--ok); border-color:var(--ok); }
+  .run-grid{ display:grid; grid-template-columns:1fr 1fr; gap:8px 10px; margin-top:4px; }
+  .run-field label{ display:block; font-size:10.5px; text-transform:uppercase; letter-spacing:0.08em; color:var(--text-faint); margin-bottom:4px; }
+  .run-field .set-input{ text-align:center; }
+  .run-pace{ background:var(--bg); border:1px dashed var(--line); border-radius:8px; padding:8px 6px; text-align:center; font-family:ui-monospace,'SF Mono',Consolas,monospace; font-size:16px; color:var(--accent); }
+  .run-last{ font-size:12px; color:var(--text-dim); margin:6px 0 0; }
+  .hist-row{ border:1px solid var(--line); background:var(--surface-2); border-radius:10px; padding:10px 12px; margin-bottom:8px; }
+  .hist-row .h1{ display:flex; justify-content:space-between; gap:8px; font-weight:700; font-size:13.5px; }
+  .hist-row .h1 span:last-child{ color:var(--text-faint); font-weight:400; font-size:12px; }
+  .hist-row .h2{ font-family:ui-monospace,'SF Mono',Consolas,monospace; font-size:12.5px; color:var(--text-dim); margin-top:4px; }
+  .cycle-item{ display:flex; align-items:center; justify-content:space-between; gap:10px; width:100%; margin-bottom:8px; padding:12px 14px; border-radius:12px; border:1px solid var(--line); background:var(--surface-2); color:var(--text); cursor:pointer; font:inherit; text-align:left; }
+  .cycle-item.active{ border-color:var(--accent); }
+  .cycle-item .cycle-item-sub{ font-size:11px; color:var(--text-dim); font-family:ui-monospace,'SF Mono',Consolas,monospace; }
   .week-grid{ display:grid; grid-template-columns: repeat(5, 1fr); gap:8px; margin-bottom:16px; }
   .week-grid-item{
     aspect-ratio:1; border-radius:10px; border:1px solid var(--line); background:var(--surface-2);
@@ -345,7 +374,7 @@
 
 <header>
   <div class="title-row">
-    <div class="app-title display">TRAINING <span>LOG</span></div>
+    <div class="app-title display">TRAINING <span>LOG</span> – <button class="title-cycle" id="cycleChip" onclick="openCycleModal()" aria-label="Choose cycle">CYCLE <span>1</span></button></div>
     <div style="display:flex; gap:10px; align-items:center; flex-shrink:0;">
       <button class="info-btn" onclick="openWarmup()">i</button>
     </div>
@@ -419,7 +448,7 @@
     <div class="warmup-tier"><b>2 sets:</b> ~50% × 6–10, then ~70% × 4–6</div>
     <div class="warmup-tier"><b>3 sets:</b> ~45% × 6–10, ~65% × 4–6, ~85% × 3–4</div>
     <div class="warmup-tier"><b>4 sets:</b> ~45% × 6–10, ~60% × 4–6, ~75% × 3–5, ~85% × 2–4</div>
-    <p style="margin-top:10px;">This program tracks RIR (Reps in Reserve) instead of RPE — lower numbers mean closer to failure, 0 means you couldn't get another rep. Week 1 is a lighter intro week; intensity ramps up toward true failure across the Foundation Block and Ramping Block. Full detail is in the program guidebook.</p>
+    <p style="margin-top:10px;" id="programInfo"></p>
     <button class="btn btn-ghost" style="width:100%; margin-top:14px;" onclick="closeWarmup(); openBackup();">Backup &amp; restore…</button>
     <button class="modal-close" onclick="closeWarmup()">Got it</button>
     <div id="appVersion" style="text-align:center; margin-top:14px; font-size:11px; color:var(--text-faint); font-family:ui-monospace,'SF Mono',Consolas,monospace;"></div>
@@ -469,6 +498,25 @@
   </div>
 </div>
 
+<div class="modal-bg" id="runHistoryModal">
+  <div class="modal">
+    <h2>Run History</h2>
+    <p id="runHistorySummary"></p>
+    <div id="runHistoryList"></div>
+    <button class="modal-close" onclick="closeRunHistory()">Close</button>
+  </div>
+</div>
+
+<div class="modal-bg" id="cycleModal">
+  <div class="modal">
+    <h2>Choose Your Cycle</h2>
+    <p>A cycle is one full run of the program. Each cycle keeps its own logged sets, completed days and cancelled items, so starting a new one never touches the previous ones.</p>
+    <div id="cycleList"></div>
+    <button class="btn btn-primary" style="width:100%; margin-top:6px;" onclick="startNewCycle()" id="newCycleBtn">Start a new cycle</button>
+    <button class="modal-close" onclick="closeCycleModal()">Close</button>
+  </div>
+</div>
+
 <div class="modal-bg" id="weekModal">
   <div class="modal">
     <h2>Choose Your Week</h2>
@@ -489,8 +537,14 @@
 let PROGRAM = null;
 
 // Bump on every change (x.y.z): shown at the bottom of the info (i) menu, also in the <meta name="app-version"> tag.
-const APP_VERSION = '1.0.1';
+const APP_VERSION = '1.2.2';
 const PROGRAM_DATA_KEY = 'program-data';
+
+function fmtDur(sec){
+  sec = Math.round(sec);
+  const m = Math.floor(sec/60), r = sec % 60;
+  return m + ':' + String(r).padStart(2, '0');
+}
 
 function validateProgram(p){
   return p && typeof p === 'object' && Array.isArray(p.weeks) && p.weeks.length > 0
@@ -540,6 +594,7 @@ let noteOpenEx = {};
 let tipExpanded = {};
 let currentExIdx = 0;
 let lastRenderedDayKey = null;
+function dayKeyNow(){ return `${currentCycle}:${state.week}:${state.dayIdx}`; }
 let pendingExFocus = null;   // null | 'firstIncomplete' | number — one-shot override when entering a day
 let savedExIdx = null;       // last exercise viewed on the day being opened (loaded from storage)
 let scrollTicking = false;
@@ -564,7 +619,7 @@ function isExSkipped(w, d, e){ return isDaySkipped(w, d) || skipSet.has(keySkipE
 function dayEffDone(doneSet, w, d){ return isDaySkipped(w, d) || doneSet.has(keyDayDone(w, d)); }
 function sanitizeKeyPart(s){ return String(s).replace(/[^a-zA-Z0-9]+/g, '_').toLowerCase(); }
 function keySubPref(exerciseName){ return `subpref:${sanitizeKeyPart(exerciseName)}`; }
-function chronoOrder(week, dayIdx){ return week*100 + dayIdx; }
+function chronoOrder(week, dayIdx){ return (currentCycle-1)*100000 + week*100 + dayIdx; }
 let subPrefsCache = {};
 async function loadSubPrefs(){
   subPrefsCache = {};
@@ -584,17 +639,46 @@ async function loadSubPrefs(){
 // longer runs inside Claude's artifact preview, so window.storage isn't
 // available — localStorage is the real, persistent equivalent on a Mac).
 const STORAGE_PREFIX = 'minmax-tracker:';
+
+// ---- Program + cycle namespacing ----
+// Everything you log lives under a scope so that different programs, and different
+// cycles of the same program, never mix:
+//   programs WITHOUT an "id" (the original one)  -> cycle 1 keeps the exact old key names,
+//                                                   so existing data is untouched
+//   programs WITH an "id"                        -> "<id>/" in front of every key
+//   cycle 2, 3, ...                              -> "c2/", "c3/" ... after the program part
+// Sub preferences are scoped by program only (they carry over from cycle to cycle).
+// App-level keys (the stored program file, backup date) are never scoped.
+let currentCycle = 1;
+function programScope(){
+  if(!PROGRAM || !PROGRAM.id) return '';
+  return String(PROGRAM.id).toLowerCase().replace(/[^a-z0-9_-]+/g, '_') + '/';
+}
+function cycleScope(c){ return programScope() + (c > 1 ? `c${c}/` : ''); }
+function keyCurrentCycle(){ return programScope() + 'current-cycle'; }
+const CYCLE_SCOPED_KEYS = ['log:', 'daydone:', 'skip:', 'lastex:', 'current-position'];
+function scopeFor(key){
+  if(CYCLE_SCOPED_KEYS.some(p => key.startsWith(p))) return cycleScope(currentCycle);
+  if(key.startsWith('subpref:')) return programScope();
+  return '';
+}
 async function safeGet(key){
-  try{ return localStorage.getItem(STORAGE_PREFIX + key); }
+  try{ return localStorage.getItem(STORAGE_PREFIX + scopeFor(key) + key); }
   catch(e){ return null; }
 }
 async function safeSet(key, value){
-  try{ localStorage.setItem(STORAGE_PREFIX + key, value); }catch(e){ /* ignore */ }
+  try{ localStorage.setItem(STORAGE_PREFIX + scopeFor(key) + key, value); }catch(e){ /* ignore */ }
 }
 async function safeDelete(key){
-  try{ localStorage.removeItem(STORAGE_PREFIX + key); }catch(e){ /* ignore */ }
+  try{ localStorage.removeItem(STORAGE_PREFIX + scopeFor(key) + key); }catch(e){ /* ignore */ }
 }
+// Lists keys of the current program + cycle (returned without the scope part).
 async function safeList(prefix){
+  const scope = scopeFor(prefix);
+  return rawList(scope + prefix).map(k => k.slice(scope.length));
+}
+// Raw access (no scoping) — used by backup export/restore and the cycle picker.
+function rawList(prefix){
   try{
     const keys = [];
     for(let i=0; i<localStorage.length; i++){
@@ -607,6 +691,8 @@ async function safeList(prefix){
     return keys;
   }catch(e){ return []; }
 }
+function rawGet(key){ try{ return localStorage.getItem(STORAGE_PREFIX + key); }catch(e){ return null; } }
+function rawSet(key, value){ try{ localStorage.setItem(STORAGE_PREFIX + key, value); }catch(e){ /* ignore */ } }
 function parseSetCount(str){
   if(!str) return 0;
   const nums = String(str).match(/\d+/g);
@@ -621,7 +707,9 @@ function totalDays(){ return PROGRAM.weeks.length * PROGRAM.weeks[0].days.length
 function isSetDone(s){
   return !!(s && s.weight && String(s.weight).trim() !== '' && s.reps && String(s.reps).trim() !== '');
 }
+function hasVal(v){ return v !== undefined && v !== null && String(v).trim() !== ''; }
 function isExerciseFullyDone(ex, entry){
+  if(ex.type === 'run') return !!(entry && entry.run && hasVal(entry.run.time) && hasVal(entry.run.distance));
   if(!entry || !entry.sets) return false;
   const nWorking = parseInt(ex.workingSets) || 1;
   if(entry.sets.length < nWorking) return false;
@@ -654,9 +742,13 @@ const SPLIT_COLORS = {
   'Pull (Hypertrophy Focus)': '#5FBF8F',
   'Push (Hypertrophy Focus)': '#E0A83D',
   'Legs (Hypertrophy Focus)': '#B36FE0',
+  'Full Body': '#E0637A',
+  'Upper': '#4F8FE8',
+  'Arms/Delts': '#E0A83D',
 };
-function splitColor(name){
-  return SPLIT_COLORS[name] || 'var(--accent)';
+function splitColor(day){
+  // a day may carry its own "color" in the program file; otherwise run days are green, others by name
+  return day.color || (day.type === 'run' ? '#5FBF8F' : (SPLIT_COLORS[day.name] || 'var(--accent)'));
 }
 
 // One distinct color per week (cycles if a program somehow has more weeks than colors),
@@ -805,6 +897,70 @@ function attachSwipeNav(el, prevFn, nextFn, canPrev, canNext){
   });
 }
 
+
+// ---- Cycles ----
+function totalDaysCount(){ return PROGRAM.weeks.reduce((n, w) => n + w.days.length, 0); }
+function existingCycles(){
+  const scope = programScope();
+  const found = new Set([1, currentCycle]);
+  rawList(scope).forEach(k => {
+    const m = k.slice(scope.length).match(/^c(\d+)\//);
+    if(m) found.add(parseInt(m[1], 10));
+  });
+  return [...found].sort((a, b) => a - b);
+}
+// How many days of a given cycle are finished (cancelled days count, like the main progress bar).
+function cycleDaysDone(c){
+  const scope = cycleScope(c);
+  const done = new Set(rawList(scope + 'daydone:').map(k => k.slice(scope.length)));
+  const skip = new Set(rawList(scope + 'skip:').map(k => k.slice(scope.length)));
+  let n = 0;
+  PROGRAM.weeks.forEach((wk, wi) => wk.days.forEach((_, di) => {
+    const w = wi + 1;
+    if(skip.has(`skip:${w}`) || skip.has(`skip:${w}:${di}`) || done.has(`daydone:${w}:${di}`)) n++;
+  }));
+  return n;
+}
+function updateCycleBar(){
+  document.getElementById('cycleChip').innerHTML = 'CYCLE <span>' + currentCycle + '</span>';
+}
+function openCycleModal(){ renderCycleModalList(); document.getElementById('cycleModal').classList.add('open'); }
+function closeCycleModal(){ document.getElementById('cycleModal').classList.remove('open'); }
+function renderCycleModalList(){
+  const list = document.getElementById('cycleList');
+  list.innerHTML = '';
+  const total = totalDaysCount();
+  const cycles = existingCycles();
+  cycles.forEach(c => {
+    const btn = document.createElement('button');
+    btn.className = 'cycle-item' + (c === currentCycle ? ' active' : '');
+    const done = cycleDaysDone(c);
+    btn.innerHTML = `<span><b>Cycle ${c}</b></span><span class="cycle-item-sub">${done} / ${total} days${done === total ? ' ✓' : ''}</span>`;
+    btn.addEventListener('click', () => { closeCycleModal(); switchCycle(c); });
+    list.appendChild(btn);
+  });
+  document.getElementById('newCycleBtn').textContent = `Start cycle ${cycles[cycles.length - 1] + 1}`;
+}
+function startNewCycle(){
+  const next = existingCycles().slice(-1)[0] + 1;
+  openConfirm(`Start cycle ${next}?`,
+    `A fresh run of the program starts again at week 1, with nothing logged. Everything from cycles 1–${next-1} stays saved and you can switch back to it any time.`,
+    'Start', async () => { closeCycleModal(); await switchCycle(next); });
+}
+async function switchCycle(c){
+  currentCycle = c;
+  await safeSet(keyCurrentCycle(), String(c));
+  await loadSkips();
+  state = { week: 1, dayIdx: 0 };
+  const saved = await safeGet('current-position');      // where you were last time in this cycle
+  if(saved){ try{ const s = JSON.parse(saved); if(s.week && s.dayIdx !== undefined && PROGRAM.weeks[s.week-1] && PROGRAM.weeks[s.week-1].days[s.dayIdx]) state = s; }catch(e){} }
+  expandedEx = {}; noteOpenEx = {}; tipExpanded = {};
+  lastRenderedDayKey = null;
+  pendingExFocus = null;
+  updateCycleBar();
+  await onNav();
+}
+
 // Selecting a week: if every day in it is finished (or cancelled) land on its first
 // exercise of day 1; otherwise land on the closest unfinished day and its first
 // unfinished exercise.
@@ -878,7 +1034,7 @@ async function updateHeaderStatus(){
   const week = PROGRAM.weeks[state.week-1];
   const day = week.days[state.dayIdx];
   const el = document.getElementById('headerStatusText');
-  if(el) el.innerHTML = `WEEK <b>${state.week}</b> · DAY <b>${state.dayIdx+1}</b> · ${day.name.toUpperCase()}`;
+  if(el) el.innerHTML = `CYCLE <b>${currentCycle}</b> · WEEK <b>${state.week}</b> · DAY <b>${state.dayIdx+1}</b> · ${day.name.toUpperCase()}`;
 }
 
 function toggleNavPickers(){
@@ -903,7 +1059,7 @@ async function updateSplitBadge(){
   if(circle){
     circle.setAttribute('stroke-dasharray', WEEK_CIRCUMFERENCE.toFixed(1));
     circle.setAttribute('stroke-dashoffset', '0'); // always a full ring; color communicates state
-    circle.setAttribute('stroke', cancelled ? 'var(--text-faint)' : (complete ? 'var(--ok)' : splitColor(day.name)));
+    circle.setAttribute('stroke', cancelled ? 'var(--text-faint)' : (complete ? 'var(--ok)' : splitColor(day)));
   }
 }
 
@@ -937,7 +1093,7 @@ async function renderDayModalList(){
     const btn = document.createElement('button');
     btn.className = 'day-list-item' + (i===state.dayIdx ? ' active' : '') + (complete ? ' complete' : '') + (cancelled ? ' cancelled' : '');
     btn.innerHTML = `
-      <span class="day-list-num" style="color:${cancelled ? 'var(--text-faint)' : (complete ? 'var(--ok)' : splitColor(d.name))}">Day ${i+1}</span>
+      <span class="day-list-num" style="color:${cancelled ? 'var(--text-faint)' : (complete ? 'var(--ok)' : splitColor(d))}">Day ${i+1}</span>
       <span class="day-list-name">${d.name}</span>
       ${complete ? '<span class="day-list-check">✓</span>' : ''}
       ${cancelled ? '<span class="next-badge" style="background:transparent; color:var(--text-faint); border:1px solid var(--text-faint);">Cancelled</span>' : ''}
@@ -1005,8 +1161,146 @@ function blankSets(n){
 
 let renderedExIdx = new Set();
 
+function parseDuration(str){
+  if(!hasVal(str)) return null;
+  const t = String(str).trim().replace(',', '.');
+  if(t.includes(':')){
+    const parts = t.split(':').map(Number);
+    if(parts.some(n => Number.isNaN(n))) return null;
+    return parts.reduce((acc, n) => acc * 60 + n, 0);
+  }
+  const m = parseFloat(t);
+  return Number.isNaN(m) ? null : m * 60;
+}
+function parseKm(str){
+  if(!hasVal(str)) return null;
+  const n = parseFloat(String(str).replace(',', '.'));
+  return Number.isNaN(n) || n <= 0 ? null : n;
+}
+function paceText(run){
+  const sec = parseDuration(run.time), km = parseKm(run.distance);
+  if(sec === null || km === null || sec <= 0) return '–';
+  return fmtDur(sec / km) + ' /km';
+}
+function runSummaryLine(run){
+  const bits = [];
+  if(hasVal(run.time)) bits.push(String(run.time).includes(':') ? run.time : (run.time + ' min'));
+  if(hasVal(run.distance)) bits.push(String(run.distance).replace(',', '.') + ' km');
+  const pc = paceText(run); if(pc !== '–') bits.push(pc);
+  if(hasVal(run.hr)) bits.push('♥ ' + run.hr);
+  if(hasVal(run.effort)) bits.push('effort ' + run.effort + '/10');
+  return bits.join(' · ');
+}
+function todayStr(){ const d = new Date(); return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0'); }
+
+function buildRunCard(day, exIdx, slide){
+  const ex = day.exercises[exIdx];
+  let entry = dayEntries[exIdx];
+  if(!entry) entry = {};
+  if(!entry.run) entry.run = { date:'', time:'', distance:'', hr:'', effort:'', note:'', intervals:[] };
+  const run = entry.run;
+  const intervals = ex.intervals || [];
+  const plannedSec = intervals.reduce((n, iv) => n + (iv.seconds || 0), 0);
+  run.intervals = intervals.map((_, i) => !!run.intervals[i]);
+  dayEntries[exIdx] = entry;
+  const cancelled = isExSkipped(state.week, state.dayIdx, exIdx);
+  const cancelLabel = isWeekSkipped(state.week) ? 'Week cancelled' : (isDaySkipped(state.week, state.dayIdx) ? 'Day cancelled' : 'Cancelled');
+  const kindLabel = { warmup:'Warm-up walk', cooldown:'Cool-down walk', walk:'Walk', run:'Run' };
+  const prev = prevWeekEntries[exIdx] && prevWeekEntries[exIdx].run;
+  const prevLine = prev ? runSummaryLine(prev) : '';
+  const esc = v => String(v == null ? '' : v).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;');
+
+  const card = document.createElement('div');
+  card.className = 'ex-card' + (cancelled ? ' cancelled' : '');
+  card.innerHTML = `
+    <div class="ex-head" data-exidx="${exIdx}">
+      <div class="ex-name-row"><div class="ex-name">${esc(ex.title || ex.name)}</div></div>
+      <div class="ex-meta">
+        <div class="meta-chip">Planned <b>${fmtDur(plannedSec)}</b></div>
+        ${cancelled ? `<div class="meta-chip cancel-chip">⊘ ${cancelLabel}</div>` : ''}
+      </div>
+    </div>
+    <div class="ex-lower" style="padding:0 14px 14px;">
+      <div class="section-label">Intervals — tick as you go</div>
+      <div id="ints-${exIdx}">
+        ${intervals.map((iv, i) => `<button type="button" class="run-int k-${iv.kind==='run'?'run':'other'}${run.intervals[i]?' done':''}" data-i="${i}"><span class="run-box">${run.intervals[i]?'✓':''}</span><span class="run-kind">${esc(iv.label || kindLabel[iv.kind] || iv.kind)}</span><span class="run-dur">${fmtDur(iv.seconds)}</span></button>`).join('')}
+      </div>
+      <div class="section-label">Your run</div>
+      <div class="run-grid">
+        <div class="run-field"><label>Total time (mm:ss)</label><input class="set-input" data-f="time" inputmode="text" placeholder="e.g. 28:30" value="${esc(run.time)}"></div>
+        <div class="run-field"><label>Distance (km)</label><input class="set-input" data-f="distance" inputmode="decimal" placeholder="e.g. 4.2" value="${esc(run.distance)}"></div>
+        <div class="run-field"><label>Avg pace</label><div class="run-pace" id="pace-${exIdx}">${paceText(run)}</div></div>
+        <div class="run-field"><label>Avg heart rate (bpm)</label><input class="set-input" data-f="hr" inputmode="numeric" placeholder="e.g. 152" value="${esc(run.hr)}"></div>
+        <div class="run-field"><label>Perceived effort (1–10)</label><input class="set-input" data-f="effort" inputmode="numeric" placeholder="1–10" value="${esc(run.effort)}"></div>
+      </div>
+      ${prevLine ? `<div class="run-last">Last week: ${esc(prevLine)}</div>` : ''}
+      <div class="note-section">
+        <textarea class="note-textarea open" data-f="note" placeholder="Notes: weather, how your legs felt…">${esc(run.note)}</textarea>
+      </div>
+      <button class="btn btn-ghost" style="width:100%; margin-top:10px;" onclick="openRunHistory()">Run history…</button>
+    </div>`;
+  slide.innerHTML = '';
+  slide.appendChild(card);
+
+  card.querySelectorAll('.run-int').forEach(btn => btn.addEventListener('click', () => {
+    const i = parseInt(btn.dataset.i, 10);
+    run.intervals[i] = !run.intervals[i];
+    btn.classList.toggle('done', run.intervals[i]);
+    btn.querySelector('.run-box').textContent = run.intervals[i] ? '✓' : '';
+    saveEntry(exIdx);
+  }));
+  card.querySelectorAll('[data-f]').forEach(inp => inp.addEventListener('input', () => {
+    run[inp.dataset.f] = inp.value;
+    if(!run.date && inp.dataset.f !== 'note' && hasVal(inp.value)) run.date = todayStr();
+    document.getElementById('pace-' + exIdx).textContent = paceText(run);
+    saveEntry(exIdx);
+  }));
+  attachLongPress(card.querySelector('.ex-head'), () => showSkipMenu('exercise', state.week, state.dayIdx, exIdx, ex.title || ex.name));
+}
+
+// ---- Run history (every logged run of this program, all cycles, newest first) ----
+function collectRuns(){
+  const out = [];
+  existingCycles().forEach(c => {
+    const scope = cycleScope(c);
+    PROGRAM.weeks.forEach((wk, wi) => wk.days.forEach((d, di) => {
+      if(d.type !== 'run') return;
+      const raw = rawGet(scope + keyEntry(wi + 1, di, 0));
+      if(!raw) return;
+      let e; try{ e = JSON.parse(raw); }catch(err){ return; }
+      if(e && e.run && (hasVal(e.run.time) || hasVal(e.run.distance))) out.push({ c, w: wi + 1, d: di, run: e.run, name: d.name });
+    }));
+  });
+  return out.sort((a, b) => (b.c - a.c) || (b.w - a.w) || (b.d - a.d));
+}
+function openRunHistory(){
+  const runs = collectRuns();
+  const km = runs.reduce((n, r) => n + (parseKm(r.run.distance) || 0), 0);
+  const sec = runs.reduce((n, r) => n + (parseDuration(r.run.time) || 0), 0);
+  document.getElementById('runHistorySummary').textContent = runs.length
+    ? `${runs.length} run${runs.length>1?'s':''} · ${km.toFixed(1)} km · ${fmtDur(sec)} total`
+    : 'No runs logged yet. Fill in time and distance on a run day and it shows up here.';
+  const list = document.getElementById('runHistoryList');
+  list.innerHTML = '';
+  runs.forEach(r => {
+    const row = document.createElement('div');
+    row.className = 'hist-row';
+    const h1 = document.createElement('div'); h1.className = 'h1';
+    const a = document.createElement('span'); a.textContent = `Cycle ${r.c} · Week ${r.w} · ${r.name}`;
+    const b = document.createElement('span'); b.textContent = r.run.date || '';
+    h1.appendChild(a); h1.appendChild(b);
+    const h2 = document.createElement('div'); h2.className = 'h2'; h2.textContent = runSummaryLine(r.run);
+    row.appendChild(h1); row.appendChild(h2);
+    if(hasVal(r.run.note)){ const n = document.createElement('div'); n.className = 'h2'; n.style.fontFamily = 'inherit'; n.textContent = r.run.note; row.appendChild(n); }
+    list.appendChild(row);
+  });
+  document.getElementById('runHistoryModal').classList.add('open');
+}
+function closeRunHistory(){ document.getElementById('runHistoryModal').classList.remove('open'); }
+
 function buildExerciseCard(day, exIdx, slide){
   const ex = day.exercises[exIdx];
+  if(ex.type === 'run') return buildRunCard(day, exIdx, slide);
   const nWorking = parseInt(ex.workingSets) || 1;
   const nWarmup = parseSetCount(ex.warmupSets);
   let entry = dayEntries[exIdx];
@@ -1209,7 +1503,7 @@ function buildExerciseCard(day, exIdx, slide){
     buildRows(warmupWrap, entry.warmup, 'W', '~6-10', null, prevEntry && prevEntry.warmup);
   }
   const setsWrap = card.querySelector(`#sets-${exIdx}`);
-  buildRows(setsWrap, entry.sets, '#', ex.reps, (si) => setTargetRIR(ex, si, nWorking), prevEntry && prevEntry.sets);
+  buildRows(setsWrap, entry.sets, '#', (ex.reps && ex.reps !== 'N/A') ? ex.reps : '—', (si) => setTargetRIR(ex, si, nWorking), prevEntry && prevEntry.sets);
 }
 
 function ensureExerciseRendered(day, exIdx){
@@ -1225,7 +1519,7 @@ function ensureExerciseRendered(day, exIdx){
 function renderDay(){
   const week = PROGRAM.weeks[state.week-1];
   const day = week.days[state.dayIdx];
-  const dayKey = `${state.week}:${state.dayIdx}`;
+  const dayKey = dayKeyNow();
   const isFreshDay = dayKey !== lastRenderedDayKey;
   if(isFreshDay){
     currentExIdx = 0;
@@ -1301,7 +1595,7 @@ function onCarouselScroll(){
   scrollTicking = true;
   requestAnimationFrame(() => {
     const carousel = document.getElementById('exerciseCarousel');
-    if(carousel && carousel.clientWidth && carousel.dataset.dayKey === `${state.week}:${state.dayIdx}`){
+    if(carousel && carousel.clientWidth && carousel.dataset.dayKey === dayKeyNow()){
       const idx = Math.round(carousel.scrollLeft / carousel.clientWidth);
       if(idx !== currentExIdx){
         currentExIdx = idx;
@@ -1446,7 +1740,7 @@ async function setSkipped(key, on){
   if(on){ skipSet.add(key); await safeSet(key, '1'); }
   else { skipSet.delete(key); await safeDelete(key); }
   // keep the user where they are, just redraw everything that depends on it
-  lastRenderedDayKey = `${state.week}:${state.dayIdx}`;
+  lastRenderedDayKey = dayKeyNow();
   await updateWeekBadge();
   await updateSplitBadge();
   renderDay();
@@ -1499,8 +1793,7 @@ function daysSince(isoString){
 }
 
 async function hasLoggedData(){
-  const keys = await safeList('');
-  return keys.some(k => k.startsWith('log:') || k.startsWith('daydone:'));
+  return rawList('').some(k => /(^|\/)(log|daydone):/.test(k));
 }
 
 async function refreshBackupStatus(){
@@ -1535,6 +1828,12 @@ async function refreshBackupStatus(){
 
 function openWarmup(){
   document.getElementById('appVersion').textContent = 'Version ' + APP_VERSION;
+  const info = document.getElementById('programInfo');
+  const lines = PROGRAM && Array.isArray(PROGRAM.info) ? PROGRAM.info : [
+    'This program tracks RIR (Reps in Reserve) instead of RPE — lower numbers mean closer to failure, 0 means you couldn\'t get another rep.'
+  ];
+  info.textContent = '';
+  lines.forEach((t, i) => { if(i) info.appendChild(document.createElement('br')); info.appendChild(document.createTextNode(t)); });
   document.getElementById('warmupModal').classList.add('open');
 }
 function closeWarmup(){ document.getElementById('warmupModal').classList.remove('open'); }
@@ -1542,10 +1841,10 @@ function openBackup(){ document.getElementById('backupModal').classList.add('ope
 function closeBackup(){ document.getElementById('backupModal').classList.remove('open'); }
 
 async function exportData(){
-  const keys = await safeList('');
+  const keys = rawList('');   // every cycle of every program, exactly as stored
   const data = {};
   for(const k of keys){
-    const v = await safeGet(k);
+    const v = rawGet(k);
     if(v !== null && v !== undefined) data[k] = v;
   }
   return JSON.stringify({ app: 'transformation-log-backup', exportedAt: new Date().toISOString(), data }, null, 2);
@@ -1630,7 +1929,7 @@ async function importBackup(jsonText){
   }
   if(!confirm('This will overwrite any current progress that overlaps with this backup. Continue?')) return;
   for(const [k, v] of Object.entries(data)){
-    await safeSet(k, v);
+    rawSet(k, v);
   }
   alert('Backup restored. Reloading…');
   location.reload();
@@ -1650,6 +1949,9 @@ function wireFilePickers(){
 }
 
 async function init(){
+  const savedCycle = parseInt(rawGet(keyCurrentCycle()), 10);
+  currentCycle = savedCycle > 0 ? savedCycle : 1;
+  updateCycleBar();
   const existing = await safeList('current-position');
   if(existing.includes('current-position')){
     const saved = await safeGet('current-position');
@@ -1722,3 +2024,4 @@ if('serviceWorker' in navigator){
 </script>
 </body>
 </html>
+v1.2.0: Couch to 5K run days (3 per week), run logging with pace/HR/effort, run history
